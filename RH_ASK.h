@@ -1,0 +1,345 @@
+// RH_ASK.h
+//
+// Copyright (C) 2014 Mike McCauley
+// $Id: RH_ASK.h,v 1.9 2014/07/01 01:23:58 mikem Exp mikem $
+
+#ifndef RH_ASK_h
+#define RH_ASK_h
+
+#include <RHGenericDriver.h>
+
+// Maximum message length (including the headers, byte count and FCS) we are willing to support
+// This is pretty arbitrary
+#define RH_ASK_MAX_PAYLOAD_LEN 67
+
+// The length of the headers we add (To, From, Id, Flags)
+// The headers are inside the payload and are therefore protected by the FCS
+#define RH_ASK_HEADER_LEN 4
+
+// This is the maximum message length that can be supported by this library. 
+// Can be pre-defined to a smaller size (to save SRAM) prior to including this header
+// Here we allow for 1 byte message length, 4 bytes headers, user data and 2 bytes of FCS
+#ifndef RH_ASK_MAX_MESSAGE_LEN
+ #define RH_ASK_MAX_MESSAGE_LEN (RH_ASK_MAX_PAYLOAD_LEN - RH_ASK_HEADER_LEN - 3)
+#endif
+
+#if !defined(RH_ASK_RX_SAMPLES_PER_BIT)
+/// Number of samples per bit
+ #define RH_ASK_RX_SAMPLES_PER_BIT 8
+#endif //RH_ASK_RX_SAMPLES_PER_BIT  
+
+/// The size of the receiver ramp. Ramp wraps modulo this number
+#define RH_ASK_RX_RAMP_LEN 160
+
+// Ramp adjustment parameters
+// Standard is if a transition occurs before RH_ASK_RAMP_TRANSITION (80) in the ramp,
+// the ramp is retarded by adding RH_ASK_RAMP_INC_RETARD (11)
+// else by adding RH_ASK_RAMP_INC_ADVANCE (29)
+// If there is no transition it is adjusted by RH_ASK_RAMP_INC (20)
+/// Internal ramp adjustment parameter
+#define RH_ASK_RAMP_INC (RH_ASK_RX_RAMP_LEN/RH_ASK_RX_SAMPLES_PER_BIT)
+/// Internal ramp adjustment parameter
+#define RH_ASK_RAMP_TRANSITION RH_ASK_RX_RAMP_LEN/2
+/// Internal ramp adjustment parameter
+#define RH_ASK_RAMP_ADJUST 9
+/// Internal ramp adjustment parameter
+#define RH_ASK_RAMP_INC_RETARD (RH_ASK_RAMP_INC-RH_ASK_RAMP_ADJUST)
+/// Internal ramp adjustment parameter
+#define RH_ASK_RAMP_INC_ADVANCE (RH_ASK_RAMP_INC+RH_ASK_RAMP_ADJUST)
+
+/// Outgoing message bits grouped as 6-bit words
+/// 36 alternating 1/0 bits, followed by 12 bits of start symbol (together called the preamble)
+/// Followed immediately by the 4-6 bit encoded byte count, 
+/// message buffer and 2 byte FCS
+/// Each byte from the byte count on is translated into 2x6-bit words
+/// Caution, each symbol is transmitted LSBit first, 
+/// but each byte is transmitted high nybble first
+/// This is the number of 6 bit nibbles in the preamble
+#define RH_ASK_PREAMBLE_LEN 8
+
+/////////////////////////////////////////////////////////////////////
+/// \class RH_ASK RH_ASK.h <RH_ASK.h>
+/// \brief Driver to send and receive unaddressed, unreliable datagrams via inexpensive ASK (Amplitude Shift Keying) or 
+/// OOK (On Off Keying) RF transceivers.
+///
+/// The message format and software technology is based on our VirtualWire library 
+/// (http://www.airspayce.com/mikem/arduino/VirtualWire), with which it is compatible.
+/// See http://www.airspayce.com/mikem/arduino/VirtualWire.pdf for more details.
+///
+/// RH_ASK is a Driver for Arduino, Maple and others that provides features to send short
+/// messages, without addressing, retransmit or acknowledgment, a bit like UDP
+/// over wireless, using ASK (amplitude shift keying). Supports a number of
+/// inexpensive radio transmitters and receivers. All that is required is
+/// transmit data, receive data and (for transmitters, optionally) a PTT
+/// transmitter enable. Can also be used over various analog connections (not just a data radio), 
+/// such as the audio channel of an A/V sender, or long TTL lines.
+///
+/// It is intended to be compatible with the RF Monolithics (www.rfm.com)
+/// Virtual Wire protocol, but this has not been tested.
+///
+/// Does not use the Arduino UART. Messages are sent with a training preamble,
+/// message length and checksum. Messages are sent with 4-to-6 bit encoding
+/// for good DC balance, and a CRC checksum for message integrity.
+///
+/// But why not just use a UART connected directly to the
+/// transmitter/receiver? As discussed in the RFM documentation, ASK receivers
+/// require a burst of training pulses to synchronize the transmitter and
+/// receiver, and also requires good balance between 0s and 1s in the message
+/// stream in order to maintain the DC balance of the message. UARTs do not
+/// provide these. They work a bit with ASK wireless, but not as well as this
+/// code.
+///
+/// \par Theory of operation
+///
+/// See ASH Transceiver Software Designer's Guide of 2002.08.07
+///   http://www.rfm.com/products/apnotes/tr_swg05.pdf
+///
+/// \par Supported Hardware
+///
+/// A range of communications
+/// hardware is supported. The ones listed below are available in common retail
+/// outlets in Australia and other countries for under $10 per unit. Many
+/// other modules may also work with this software. 
+///
+/// Runs on a wide range of Arduino processors using Arduino IDE 1.0 or later.
+/// Also runs on on Energia
+/// with MSP430G2553 / G2452 and Arduino with ATMega328 (courtesy Yannick DEVOS - XV4Y), 
+/// but untested by us. It also runs on Teensy 3.0 (courtesy of Paul
+/// Stoffregen), but untested by us. Also compiles and runs on ATtiny85 in
+/// Arduino environment, courtesy r4z0r7o3. Also compiles on maple-ide-v0.0.12,
+/// and runs on Maple, flymaple 1.1 etc. Runs on ATmega8/168 (Arduino Diecimila,
+/// Uno etc), ATmega328 and can run on almost any other AVR8 platform,
+/// without relying on the Arduino framework, by properly configuring the
+/// library editing the RH_ASK.h header file for describing the access
+/// to IO pins and for setting up the timer.
+///
+/// - Receivers
+///  - RX-B1 (433.92MHz) (also known as ST-RX04-ASK)
+///  - RFM83C from HopeRF http://www.hoperfusa.com/details.jsp?pid=126
+/// - Transmitters: 
+///  - TX-C1 (433.92MHz)
+///  - RFM85 from HopeRF http://www.hoperfusa.com/details.jsp?pid=127
+/// - Transceivers
+///  - DR3100 (433.92MHz)
+///
+/// \par Connecting to Arduino
+///
+/// Most transmitters can be connected to Arduino like this:
+
+/// \code
+/// Arduino                         Transmitter
+///  GND------------------------------GND
+///  D12------------------------------Data
+///  5V-------------------------------VCC
+/// \endcode
+///
+/// Most receivers can be connected to Arduino like this:
+/// \code
+/// Arduino                         Receiver
+///  GND------------------------------GND
+///  D11------------------------------Data
+///  5V-------------------------------VCC
+///                                   SHUT (not connected)
+///                                   WAKEB (not connected)
+///                                   GND |
+///                                   ANT |- connect to your antenna syetem
+/// \endcode
+///
+/// For testing purposes you can connect 2 Arduino RH_ASK instances directly, by
+/// connecting pin 12 of one to 11 of the other and vice versa, like this for a duplex connection:
+///
+/// \code
+/// Arduino 1         wires         Arduino 1
+///  D11-----------------------------D12
+///  D12-----------------------------D11
+///  GND-----------------------------GND
+/// \endcode
+///
+/// You can also connect 2 RH_ASK instances over a suitable analog
+/// transmitter/receiver, such as the audio channel of an A/V transmitter/receiver. You may need
+/// buffers at each end of the connection to convert the 0-5V digital output to a suitable analog voltage.
+///
+/// Measured power output from RFM85 at 5V was 18dBm.
+///
+/// \par Timers
+/// The RH_ASK driver uses a timer-driven interrupt to generate 8 interrupts per bit period. RH_ASK
+/// takes over a timer on Arduino-like platforms. By default it takes over Timer 1. You can force it
+/// to use Timer 2 instead by enabling the define RH_ASK_ARDUINO_USE_TIMER2 near the top of RH_ASK.cpp
+///
+/// Caution: ATTiny85 has only 2 timers, one (timer 0) usually used for
+/// millis() and one (timer 1) for PWM analog outputs. The RH_ASK Driver
+/// library, when built for ATTiny85, takes over timer 0, which prevents use
+/// of millis() etc but does permit analog outputs. This will affect the accuracy of millis() and time
+/// measurement.
+class RH_ASK : public RHGenericDriver
+{
+public:
+    /// Constructor
+    /// \param[in] speed The desired bit rate in bits per second
+    /// \param[in] rxPin The pin that is used to get data from the receiver
+    /// \param[in] txPin The pin that is used to send data to the transmitter
+    /// \param[in] pttPin The pin that is connected to the transmitter controller. It will be set HIGH to enable the transmitter (unless pttInverted is true).
+    /// \param[in] pttInverted true if you desire the pttin to be inverted so that LOW wil enable the transmitter.
+    RH_ASK(uint16_t speed = 2000, uint8_t rxPin = 11, uint8_t txPin = 12, uint8_t pttPin = 10, bool pttInverted = false);
+
+    /// Initialise the Driver transport hardware and software.
+    /// Make sure the Driver is properly configured before calling init().
+    /// \return true if initialisation succeeded.
+    virtual bool    init();
+
+    /// Tests whether a new message is available
+    /// from the Driver. 
+    /// On most drivers, this will also put the Driver into RHModeRx mode until
+    /// a message is actually received bythe transport, when it wil be returned to RHModeIdle.
+    /// This can be called multiple times in a timeout loop
+    /// \return true if a new, complete, error-free uncollected message is available to be retreived by recv()
+    virtual bool    available();
+
+    /// Turns the receiver on if it not already on.
+    /// If there is a valid message available, copy it to buf and return true
+    /// else return false.
+    /// If a message is copied, *len is set to the length (Caution, 0 length messages are permitted).
+    /// You should be sure to call this function frequently enough to not miss any messages
+    /// It is recommended that you call it in your main loop.
+    /// \param[in] buf Location to copy the received message
+    /// \param[in,out] len Pointer to available space in buf. Set to the actual number of octets copied.
+    /// \return true if a valid message was copied to buf
+    virtual bool    recv(uint8_t* buf, uint8_t* len);
+
+    /// Waits until any previous transmit packet is finished being transmitted with waitPacketSent().
+    /// Then loads a message into the transmitter and starts the transmitter. Note that a message length
+    /// of 0 is NOT permitted. 
+    /// \param[in] data Array of data to be sent
+    /// \param[in] len Number of bytes of data to send (> 0)
+    /// \return true if the message length was valid and it was correctly queued for transmit
+    virtual bool    send(const uint8_t* data, uint8_t len);
+
+    /// Returns the maximum message length 
+    /// available in this Driver.
+    /// \return The maximum legal message length
+    virtual uint8_t maxMessageLength();
+
+    /// If current mode is Rx or Tx changes it to Idle. If the transmitter or receiver is running, 
+    /// disables them.
+    void           setModeIdle();
+
+    /// If current mode is Tx or Idle, changes it to Rx. 
+    /// Starts the receiver in the RF69.
+    void           setModeRx();
+
+    /// If current mode is Rx or Idle, changes it to Rx. F
+    /// Starts the transmitter in the RF69.
+    void           setModeTx();
+
+    /// dont call this it used by the interrupt handler
+    void            handleTimerInterrupt();
+
+protected:
+    /// Helper function for calculating timer ticks
+    uint8_t         timerCalc(uint16_t speed, uint16_t max_ticks, uint16_t *nticks);
+
+    /// Set up the timer and its interrutps so the interrupt handler is called at the right frequency
+    void            timerSetup();
+
+    /// Read the rxPin in a platform dependent way, taking into account whether it is inverted or not
+    bool            readRx();
+
+    /// Write the txPin in a platform dependent way
+    void            writeTx(bool value);
+
+    /// Write the txPin in a platform dependent way, taking into account whether it is inverted or not
+    void            writePtt(bool value);
+
+    /// Translates a 6 bit symbol to its 4 bit plaintext equivalent
+    uint8_t         symbol_6to4(uint8_t symbol);
+
+    /// The receiver handler function, called a 8 times the bit rate
+    void            receiveTimer();
+
+    /// The transmitter handler function, called a 8 times the bit rate 
+    void            transmitTimer();
+
+    /// Check whether the latest received message is complete and uncorrupted
+    /// We should always check the FCS at user level, not interrupt level
+    /// since it is slow
+    void            validateRxBuf();
+
+    /// Configure bit rate in bits per second
+    uint16_t        _speed;
+
+    /// The configure receiver pin
+    uint8_t         _rxPin;
+
+    /// The configure transmitter pin
+    uint8_t         _txPin;
+
+    /// The configured transmitter enable pin
+    uint8_t         _pttPin;
+
+    /// True of the sense of the rxPin is to be inverted
+    bool            _rxInverted;
+
+    /// True of the sense of the pttPin is to be inverted
+    bool            _pttInverted;
+
+    // Used in the interrupt handlers
+    /// Buf is filled but not validated
+    volatile bool   _rxBufFull;
+
+    /// Buf is full and valid
+    volatile bool   _rxBufValid;
+
+    /// Last digital input from the rx data pin
+    volatile bool   _rxLastSample;
+
+    /// This is the integrate and dump integral. If there are <5 0 samples in the PLL cycle
+    /// the bit is declared a 0, else a 1
+    volatile uint8_t _rxIntegrator;
+
+    /// PLL ramp, varies between 0 and RH_ASK_RX_RAMP_LEN-1 (159) over 
+    /// RH_ASK_RX_SAMPLES_PER_BIT (8) samples per nominal bit time. 
+    /// When the PLL is synchronised, bit transitions happen at about the
+    /// 0 mark. 
+    volatile uint8_t _rxPllRamp;
+
+    /// Flag indicates if we have seen the start symbol of a new message and are
+    /// in the processes of reading and decoding it
+    volatile uint8_t _rxActive;
+
+    /// Last 12 bits received, so we can look for the start symbol
+    volatile uint16_t _rxBits;
+
+    /// How many bits of message we have received. Ranges from 0 to 12
+    volatile uint8_t _rxBitCount;
+    
+    /// The incoming message buffer
+    uint8_t _rxBuf[RH_ASK_MAX_PAYLOAD_LEN];
+    
+    /// The incoming message expected length
+    volatile uint8_t _rxCount;
+    
+    /// The incoming message buffer length received so far
+    volatile uint8_t _rxBufLen;
+
+    /// Index of the next symbol to send. Ranges from 0 to vw_tx_len
+    uint8_t _txIndex;
+
+    /// Bit number of next bit to send
+    uint8_t _txBit;
+
+    /// Sample number for the transmitter. Runs 0 to 7 during one bit interval
+    uint8_t _txSample;
+
+    /// The trasnmitter buffer in _symbols_ not data octets
+    uint8_t _txBuf[(RH_ASK_MAX_PAYLOAD_LEN * 2) + RH_ASK_PREAMBLE_LEN];
+
+    /// Number of symbols in _txBuf to be sent;
+    uint8_t _txBufLen;
+
+};
+
+/// @example ask_reliable_datagram_client.pde
+/// @example ask_reliable_datagram_server.pde
+/// @example ask_transmitter.pde
+/// @example ask_receiver.pde
+#endif
