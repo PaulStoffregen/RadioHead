@@ -9,6 +9,10 @@
 
 #include <RadioHead.h>
 
+#if (RH_PLATFORM == RH_PLATFORM_ARDUINO)
+#include <SPI.h> // for SPI_HAS_TRANSACTION and SPISettings
+#endif
+
 /////////////////////////////////////////////////////////////////////
 /// \class RHGenericSPI RHGenericSPI.h <RHGenericSPI.h>
 /// \brief Base class for SPI interfaces
@@ -133,5 +137,14 @@ protected:
 
     /// SPI bus mode, one of RHGenericSPI::DataMode
     DataMode     _dataMode;  
+
+#if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined(SPI_HAS_TRANSACTION)
+public:
+    // An ugly hack... this probably belongs in RHHardwareSPI.cpp, but
+    // beginTransaction() needs to be called at a higher level which does
+    // not know if the underlying SPI is hardware or software.  This hack
+    // is merely for testing.
+    SPISettings  _settings;
+#endif
 };
 #endif

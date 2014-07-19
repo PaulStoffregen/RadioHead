@@ -27,6 +27,14 @@ bool RHNRFSPIDriver::init()
     return true;
 }
 
+// Ugly hack for testing SPI.beginTransaction...
+#if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined(SPI_HAS_TRANSACTION)
+#undef ATOMIC_BLOCK_START
+#undef ATOMIC_BLOCK_END
+#define ATOMIC_BLOCK_START SPI.beginTransaction(_spi._settings)
+#define ATOMIC_BLOCK_END   SPI.endTransaction()
+#endif
+
 // Low level commands for interfacing with the device
 uint8_t RHNRFSPIDriver::spiCommand(uint8_t command)
 {

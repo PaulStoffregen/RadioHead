@@ -67,6 +67,9 @@ bool RH_RF95::init()
 	attachInterrupt(interruptNumber, isr2, RISING);
     else
 	return false; // Too many devices, not enough interrupt vectors
+    #if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined(SPI_HAS_TRANSACTION)
+    SPI.usingInterrupt(interruptNumber);
+    #endif
     _interruptCount++;
 
     // Set up FIFO

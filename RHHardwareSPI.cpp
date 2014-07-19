@@ -77,6 +77,28 @@ void RHHardwareSPI::begin()
     SPI.setDataMode(dataMode);
 #endif
 
+#if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined(SPI_HAS_TRANSACTION)
+    uint32_t frequency32;
+    if (_frequency == Frequency16MHz) {
+        frequency32 = 16000000;
+    } else if (_frequency == Frequency8MHz) {
+        frequency32 = 8000000;
+    } else if (_frequency == Frequency4MHz) {
+        frequency32 = 4000000;
+    } else if (_frequency == Frequency2MHz) {
+        frequency32 = 2000000;
+    } else {
+        frequency32 = 1000000;
+    }
+    uint8_t bOrder;
+    if (_bitOrder == BitOrderLSBFirst) {
+        bOrder = LSBFIRST;
+    } else {
+        bOrder = MSBFIRST;
+    }
+    _settings = SPISettings(frequency32, bOrder, dataMode);
+#endif
+
 #if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined (__arm__) && !defined(CORE_TEENSY)
     // Arduino Due in 1.5.5 has its own BitOrder :-(
     ::BitOrder bitOrder;

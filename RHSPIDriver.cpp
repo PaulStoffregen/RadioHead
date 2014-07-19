@@ -27,6 +27,14 @@ bool RHSPIDriver::init()
     return true;
 }
 
+// Ugly hack for testing SPI.beginTransaction...
+#if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined(SPI_HAS_TRANSACTION)
+#undef ATOMIC_BLOCK_START
+#undef ATOMIC_BLOCK_END
+#define ATOMIC_BLOCK_START SPI.beginTransaction(_spi._settings)
+#define ATOMIC_BLOCK_END   SPI.endTransaction()
+#endif
+
 uint8_t RHSPIDriver::spiRead(uint8_t reg)
 {
     uint8_t val;
