@@ -1,16 +1,16 @@
 // RadioHead.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-// $Id: RadioHead.h,v 1.30 2014/07/01 01:23:58 mikem Exp mikem $
+// $Id: RadioHead.h,v 1.41 2014/09/18 00:25:01 mikem Exp mikem $
 
 /// \mainpage RadioHead Packet Radio library for embedded microprocessors
 ///
 /// This is the RadioHead Packet Radio library for embedded microprocessors.
 /// It provides a complete object-oriented library for sending and receiving packetized messages
-/// via a variety of common data radios on a range of embedded microprocessors.
+/// via a variety of common data radios and other transports on a range of embedded microprocessors.
 ///
 /// The version of the package that this documentation refers to can be downloaded 
-/// from http://www.airspayce.com/mikem/arduino/RadioHead/RadioHead-1.24.zip
+/// from http://www.airspayce.com/mikem/arduino/RadioHead/RadioHead-1.36.zip
 /// You can find the latest version at http://www.airspayce.com/mikem/arduino/RadioHead
 ///
 /// You can also find online help and disussion at 
@@ -57,6 +57,13 @@
 /// features such as on-chip temperature measurement, analog-digital 
 /// converter, transmitter power control etc is also provided.
 ///
+/// - RH_RF24
+/// Works with Silicon Labs Si4460/4461/4463/4464 family of transceivers chip, and the equivalent
+/// HopeRF RF24/26/27 family of chips and the HopeRF RFM24W/26W/27W modules.
+/// Supports GFSK, FSK and OOK. Access to other chip 
+/// features such as on-chip temperature measurement, analog-digital 
+/// converter, transmitter power control etc is also provided.
+///
 /// - RH_RF69 
 /// Works with Hope-RF
 /// RF69B based radio modules, such as the RFM69 module, (as used on the excellent Moteino and Moteino-USB 
@@ -95,7 +102,7 @@
 /// - RH_TCP
 /// For use with simulated sketches compiled and running on Linux.
 /// Works with tools/etherSimulator.pl to pass messages between simulated sketches, allowing
-/// testing of Manager classes on Linuix and without need for real radios or other transport hardware.
+/// testing of Manager classes on Linux and without need for real radios or other transport hardware.
 ///
 /// Drivers can be used on their own to provide unaddressed, unreliable datagrams. 
 /// All drivers have the same identical API.
@@ -127,7 +134,10 @@
 ///
 /// - Arduino and the Arduino IDE (version 1.0 to 1.5.5 and later)
 /// Including Diecimila, Uno, Mega, Leonardo, Yun etc. http://arduino.cc/, Also similar boards such as 
-/// Moteino http://lowpowerlab.com/moteino/ , Anarduino Mini http://www.anarduino.com/mini/ etc.
+///  - Moteino http://lowpowerlab.com/moteino/ 
+///  - Anarduino Mini http://www.anarduino.com/mini/ 
+///  - RedBearLab Blend V1.0 http://redbearlab.com/blend/ (with Arduino 1.0.5 and RedBearLab Blend Add-On version 20140701) 
+///  - etc.
 ///
 /// - ChipKit Uno32 board and the MPIDE development environment
 /// http://www.digilentinc.com/Products/Detail.cfm?Prod=CHIPKIT-UNO32
@@ -135,9 +145,12 @@
 /// - Maple and Flymaple boards with libmaple and the Maple-IDE development environment
 /// http://leaflabs.com/devices/maple/ and http://www.open-drone.org/flymaple
 ///
-/// - Teensy including Teensy 3.1 built using Arduino IDE 1.0.5 with 
+/// - Teensy including Teensy 3.1 and earlier built using Arduino IDE 1.0.5 with 
 ///   teensyduino addon 1.18 and later.
-///   http://www.pjrc.com/teensy 
+///   http://www.pjrc.com/teensy
+///
+/// - ATtiny built using Arduino IDE 1.0.5 with the arduino-tiny support from https://code.google.com/p/arduino-tiny/
+///   (Caution: these are very small processors and not all RadioHead features may work, depending on memory requirements)
 ///
 /// Other platforms are partially supported, such as Generic AVR 8 bit processors, MSP430. 
 /// We welcome contributions that will expand the range of supported platforms. 
@@ -362,11 +375,78 @@
 ///              was not very reliable.<br>
 ///              Documented RH_RF95 range tests.<br>
 ///              Improvements to RH_RF22 RSSI readings so that lastRssi correctly returns the last message in dBm.<br>
-/// \version 1.24 ????
+/// \version 1.24 2014-07-18
 ///              Added support for building RadioHead for STM32F4 Discovery boards, using the native STM Firmware libraries,
 ///              in order to support Codec2WalkieTalkie (http://www.airspayce.com/mikem/Codec2WalkieTalkie)
 ///              and other projects. See STM32ArduinoCompat.<br>
 ///              Default modulation for RH_RF95 was incorrectly set to a very slow Bw125Cr48Sf4096
+/// \version 1.25 2014-07-25
+///              The available() function will longer terminate any current transmission, and force receive mode. 
+///              Now, if there is no unprocessed incoming message abd an outgoing message is currently being transmitted, 
+///              available() will return false.<br>
+///              RHRouter::sendtoWait(uint8_t*, uint8_t, uint8_t, uint8_t) renamed to sendtoFromSourceWait due to conflicts
+///              with new sendtoWait() with optional flags.<br>
+///              RHMEsh and RHRouter already supported end-to-end application layer flags, but RHMesh::sendtoWait() 
+///              and RHRouter::sendToWait have now been extended to expose a way to send optional application layer flags.
+/// \version 1.26 2014-08-12
+///              Fixed a Teensy 2.0 compile problem due yield() not available on Teensy < 3.0. <br>
+///              Adjusted the algorithm of RH_RF69::temperatureRead() to more closely reflect reality.<br>
+///              Added functions to RHGenericDriver to get driver packet statistics: rxBad(), rxGood(), txGood().<br>
+///              Added RH_RF69::printRegisters().<br>
+///              RH_RF95::printRegisters() was incorrectly printing the register index instead of the address.
+///              Reported by Phang Moh Lim.<br>
+///              RH_RF95, added definitions for some more registers that are usable in LoRa mode.<br>
+///              RH_RF95::setTxPower now uses RH_RF95_PA_DAC_ENABLE to achieve 21, 22 and 23dBm.<br>
+///              RH_RF95, updated power output measurements.<br>
+///              Testing RH_RF69 on Teensy 3.1 with RF69 on PJRC breakout board. OK.<br>
+///              Improvements so RadioHead will build under Arduino where SPI is not supported, such as 
+///              ATTiny.<br>
+///              Improvements so RadioHead will build for ATTiny using Arduino IDE and tinycore arduino-tiny-0100-0018.zip.<br>
+///              Testing RH_ASK on ATTiny85. Reduced RAM footprint. 
+///              Added helpful documentation. Caution: RAM memory is *very* tight on this platform.<br>
+///              RH_RF22 and RH_RF69, added setIdleMode() function to allow the idle mode radio operating state
+///              to be controlled for lower idle power consumption at the expense of slower transitions to TX and RX.<br>
+/// \version 1.27 2014-08-13
+///              All RH_RF69 modulation schemes now have data whitening enabled by default.<br>
+///              Tested and added a number of OOK modulation schemes to RH_RF69 Modem config table.<br>
+///              Minor improvements to a number of the faster RH_RF69 modulation schemes, but some slower ones
+///              are still not working correctly.<br>
+/// \version 1.28 2014-08-20
+///              Added new RH_RF24 driver to support Si446x, RF24/26/26, RFM24/26/27 family of transceivers.
+///              Tested with the excellent
+///              Anarduino Mini and RFM24W and RFM26W with the generous assistance of the good people at 
+///              Anarduino http://www.anarduino.com.
+/// \version 1.29 2014-08-21
+///              Fixed a compile error in RH_RF24 introduced at the last minute in hte previous release.<br>
+///              Improvements to RH_RF69 modulation schemes: now include the AFCBW in teh ModemConfig.<br>
+///              ModemConfig RH_RF69::FSK_Rb2Fd5 and RH_RF69::GFSK_Rb2Fd5 are now working.<br> 
+/// \version 1.30 2014-08-25
+///              Fixed some compile problems with ATtiny84 on Arduino 1.5.5 reported by Glen Cook.<br>
+/// \version 1.31 2014-08-27
+///              Changed RH_RF69 FSK and GFSK modulations from Rb2_4Fd2_4 to Rb2_4Fd4_8 and FSK_Rb4_8Fd4_8 to FSK_Rb4_8Fd9_6
+///              since the previous ones were unreliable (they had modulation indexes of 1).<br>
+/// \version 1.32 2014-08-28
+///              Testing with RedBearLab Blend board http://redbearlab.com/blend/. OK.<br>
+///              Changed more RH_RF69 FSK and GFSK slowish modulations to have modulation index of 2 instead of 1. 
+///              This required chnaging the symbolic names.<br>
+/// \version 1.33 2014-09-01
+///              Added support for sleep mode in RHGeneric driver, with new mode 
+///              RHModeSleep and new virtual function sleep().<br>
+///              Added support for sleep to RH_RF69, RH_RF22, RH_NRF24, RH_RF24, RH_RF95 drivers.<br>
+/// \version 1.34 2014-09-19
+///              Fixed compile errors in example rf22_router_test.<br>
+///              Fixed a problem with RH_NRF24::setNetworkAddress, also improvements to RH_NRF24 register printing.
+///              Patched by Yveaux.<br>
+///              Improvements to RH_NRF24 initialisation for version 2.0 silicon.<br>
+///              Fixed problem with ambigiguous print call in RH_RFM69 when compiling for Codec2.<br>
+///              Fixed a problem with RH_NRF24 on RFM73 where the LNA gain was not set properly, reducing the sensitivity
+///              of the receiver.
+/// \version 1.35 2014-09-19
+///              Fixed a problem with interrupt setup on RH_RF95 with Teensy3.1. Reported by AD.<br>
+/// \version 1.36 2014-09-22
+///              Improvements to interrupt pin assignments for __AVR_ATmega1284__ and__AVR_ATmega1284P__, provided by
+///              Peter Scargill.<br>
+///              Work around a bug in Arduino 1.0.6 where digitalPinToInterrupt is defined but NOT_AN_INTERRUPT is not.<br>
 ///
 /// \author  Mike McCauley. DO NOT CONTACT THE AUTHOR DIRECTLY. USE THE MAILING LIST GIVEN ABOVE
 
@@ -375,16 +455,16 @@
 
 // Official version numbers are maintained automatically by Makefile:
 #define RH_VERSION_MAJOR 1
-#define RH_VERSION_MINOR 24
+#define RH_VERSION_MINOR 36
 
 // Symbolic names for currently supported platform types
-#define RH_PLATFORM_ARDUINO      1
-#define RH_PLATFORM_MSP430       2
-#define RH_PLATFORM_STM32        3
-#define RH_PLATFORM_GENERIC_AVR8 4
-#define RH_PLATFORM_UNO32        5
-#define RH_PLATFORM_SIMULATOR    6
-#define RH_PLATFORM_STM32STD     7
+#define RH_PLATFORM_ARDUINO          1
+#define RH_PLATFORM_MSP430           2
+#define RH_PLATFORM_STM32            3
+#define RH_PLATFORM_GENERIC_AVR8     4
+#define RH_PLATFORM_UNO32            5
+#define RH_PLATFORM_SIMULATOR        6
+#define RH_PLATFORM_STM32STD         7
 
 ////////////////////////////////////////////////////
 // Select platform automatically, if possible
@@ -399,11 +479,15 @@
   #define RH_PLATFORM RH_PLATFORM_STM32
 #elif defined(USE_STDPERIPH_DRIVER)
   #define RH_PLATFORM RH_PLATFORM_STM32STD
- #elif defined(__unix__)
+#elif defined(__unix__)
   #define RH_PLATFORM RH_PLATFORM_SIMULATOR
  #else
   #error Platform not defined! 	
  #endif
+#endif
+
+#if defined(__AVR_ATtiny84__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtinyX4__) || defined(__AVR_ATtinyX5__) || defined(__AVR_ATtiny2313__) || defined(__AVR_ATtiny4313__) || defined(__AVR_ATtinyX313__)
+ #define RH_PLATFORM_ATTINY
 #endif
 
 ////////////////////////////////////////////////////
@@ -414,25 +498,60 @@
  #else
   #include <wiring.h>
  #endif
-
+ #ifdef RH_PLATFORM_ATTINY
+  #warning Arduino TinyCore does not support hardware SPI. Use software SPI instead.
+ #elif defined(MCU_STM32F103RB)
+  #include <wirish.h>
+  #include <stdint.h>
+  #include <string.h>
+  #include <SPI.h>
+  #define RH_HAVE_HARDWARE_SPI
+  // Defines which timer to use on Maple
+  #define MAPLE_TIMER 1
+  #define PROGMEM
+  #define memcpy_P memcpy
+  #define Serial Serial2
+#else
+  #include <SPI.h>
+  #define RH_HAVE_HARDWARE_SPI
+ #endif
 #elif (RH_PLATFORM == RH_PLATFORM_MSP430) // LaunchPad specific
  #include "legacymsp430.h"
  #include "Energia.h"
+ #include <SPI.h>
+ #define RH_HAVE_HARDWARE_SPI
 
 #elif (RH_PLATFORM == RH_PLATFORM_UNO32)
  #include <WProgram.h>
  #include <string.h>
+ #include <SPI.h>
+ #define RH_HAVE_HARDWARE_SPI
  #define memcpy_P memcpy
 
 #elif (RH_PLATFORM == RH_PLATFORM_STM32) // Maple, Flymaple etc
  #include <wirish.h>	
  #include <stdint.h>
  #include <string.h>
+ #include <HardwareSPI.h>
+ #define RH_HAVE_HARDWARE_SPI
  // Defines which timer to use on Maple
  #define MAPLE_TIMER 1
  #define PROGMEM
  #define memcpy_P memcpy
  #define Serial SerialUSB
+
+#elif (RH_PLATFORM == RH_PLATFORM_STM32) // Maple, Flymaple etc
+ #include <wirish.h>
+ #include <stdint.h>
+ #include <string.h>
+ #include <HardwareSPI.h>
+ #define RH_HAVE_HARDWARE_SPI
+ // Defines which timer to use on Maple
+ #define MAPLE_TIMER 1
+ #define PROGMEM
+ #define memcpy_P memcpy
+ #define Serial SerialUSB
+
 
 #elif (RH_PLATFORM == RH_PLATFORM_STM32STD) // STM32 with STM32F4xx_StdPeriph_Driver 
  #include <stm32f4xx.h>
@@ -440,6 +559,8 @@
  #include <stdint.h>
  #include <string.h>
  #include <math.h>
+ #include <HardwareSPI.h>
+ #define RH_HAVE_HARDWARE_SPI
  #define Serial SerialUSB
 
 #elif (RH_PLATFORM == RH_PLATFORM_GENERIC_AVR8) 
@@ -448,6 +569,8 @@
  #include <util/delay.h>
  #include <string.h>
  #include <stdbool.h>
+ #define RH_HAVE_HARDWARE_SPI
+ #include <SPI.h>
 
 #elif (RH_PLATFORM == RH_PLATFORM_SIMULATOR) 
  // Simulate the sketch on Linux
@@ -461,6 +584,7 @@
 #if (RH_PLATFORM == RH_PLATFORM_ARDUINO)
 #if defined(__arm__)
   #include <RHutil/atomic.h>
+  #define PROGMEM
  #else
   #include <util/atomic.h>
  #endif
@@ -479,36 +603,42 @@
 ////////////////////////////////////////////////////
 // Try to be compatible with systems that support yield() and multitasking
 // instead of spin-loops
-#if (RH_PLATFORM == RH_PLATFORM_ARDUINO && ARDUINO >= 155) || (TEENSYDUINO)
+// Recent Arduino IDE or Teensy 3 has yield()
+#if (RH_PLATFORM == RH_PLATFORM_ARDUINO && ARDUINO >= 155 && !defined(RH_PLATFORM_ATTINY)) || (TEENSYDUINO && defined(__MK20DX128__))
  #define YIELD yield();
 #else
  #define YIELD
 #endif
 
 ////////////////////////////////////////////////////
-// digitalPinToInterrupt is not available prior to Arduino 1.5.6
+// digitalPinToInterrupt is not available prior to Arduino 1.5.6 and 1.0.6
 // See http://arduino.cc/en/Reference/attachInterrupt
+#ifndef NOT_AN_INTERRUPT
+ #define NOT_AN_INTERRUPT -1
+#endif
 #ifndef digitalPinToInterrupt
- #ifndef NOT_AN_INTERRUPT
-  #define NOT_AN_INTERRUPT -1
- #endif
-#if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && !defined(__arm__)
+ #if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && !defined(__arm__)
 
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1284__)|| defined(__AVR_ATmega1284p__)
-  // Arduino Mega, Mega ADK, Mega Pro
-  // 2->0, 3->1, 21->2, 20->3, 19->4, 18->5
-  #define digitalPinToInterrupt(p) ((p) == 2 ? 0 : ((p) == 3 ? 1 : ((p) >= 18 && (p) <= 21 ? 23 - (p) : NOT_AN_INTERRUPT)))
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+   // Arduino Mega, Mega ADK, Mega Pro
+   // 2->0, 3->1, 21->2, 20->3, 19->4, 18->5
+   #define digitalPinToInterrupt(p) ((p) == 2 ? 0 : ((p) == 3 ? 1 : ((p) >= 18 && (p) <= 21 ? 23 - (p) : NOT_AN_INTERRUPT)))
+
+  #elif defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__) 
+   // Arduino 1284 and 1284P - See Manicbug and Optiboot
+   // 10->0, 11->1, 2->2
+   #define digitalPinToInterrupt(p) ((p) == 10 ? 0 : ((p) == 11 ? 1 : ((p) == 2 ? 2 : NOT_AN_INTERRUPT)))
 
   #elif defined(__AVR_ATmega32U4__)
-  // Leonardo, Yun, Micro, Pro Micro, Flora, Esplora
-  // 3->0, 2->1, 0->2, 1->3, 7->4
-  #define digitalPinToInterrupt(p) ((p) == 0 ? 2 : ((p) == 1 ? 3 : ((p) == 2 ? 1 : ((p) == 3 ? 0 : ((p) == 7 ? 4 : NOT_AN_INTERRUPT)))))
+   // Leonardo, Yun, Micro, Pro Micro, Flora, Esplora
+   // 3->0, 2->1, 0->2, 1->3, 7->4
+   #define digitalPinToInterrupt(p) ((p) == 0 ? 2 : ((p) == 1 ? 3 : ((p) == 2 ? 1 : ((p) == 3 ? 0 : ((p) == 7 ? 4 : NOT_AN_INTERRUPT)))))
 
   #else
-  // All other arduino except Due:
-  // Serial Arduino, Extreme, NG, BT, Uno, Diecimila, Duemilanove, Nano, Menta, Pro, Mini 04, Fio, LilyPad, Ethernet etc
-  // 2->0, 3->1
-  #define digitalPinToInterrupt(p)  ((p) == 2 ? 0 : ((p) == 3 ? 1 : NOT_AN_INTERRUPT))
+   // All other arduino except Due:
+   // Serial Arduino, Extreme, NG, BT, Uno, Diecimila, Duemilanove, Nano, Menta, Pro, Mini 04, Fio, LilyPad, Ethernet etc
+   // 2->0, 3->1
+   #define digitalPinToInterrupt(p)  ((p) == 2 ? 0 : ((p) == 3 ? 1 : NOT_AN_INTERRUPT))
 
   #endif
  

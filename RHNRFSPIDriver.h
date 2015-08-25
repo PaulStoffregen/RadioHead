@@ -1,7 +1,7 @@
 // RHNRFSPIDriver.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-// $Id: RHNRFSPIDriver.h,v 1.1 2014/04/23 06:00:59 mikem Exp $
+// $Id: RHNRFSPIDriver.h,v 1.2 2014/08/12 00:54:52 mikem Exp $
 
 #ifndef RHNRFSPIDriver_h
 #define RHNRFSPIDriver_h
@@ -33,11 +33,18 @@ class RHGenericSPI;
 class RHNRFSPIDriver : public RHGenericDriver
 {
 public:
+    typedef enum
+    {
+    DataKindGeneric = 0,
+    DataKindPayload,
+    DataKindCommand
+    } DataKind;
     /// Constructor
-    /// \param[in] slaveSelectPin The controler pin to use to select the desired SPI device. This pin will be driven LOW
+    /// \param[in] slaveSelectPin The controller pin to use to select the desired SPI device. This pin will be driven LOW
     /// during SPI communications with the SPI device that uis iused by this Driver.
     /// \param[in] spi Reference to the SPI interface to use. The default is to use a default built-in Hardware interface.
     RHNRFSPIDriver(uint8_t slaveSelectPin = SS, RHGenericSPI& spi = hardware_spi);
+    RHNRFSPIDriver(uint8_t slaveSelectPin = SS, uint8_t slaveSelectPin2=SS, RHGenericSPI& spi = hardware_spi);
 
     /// Initialise the Driver transport hardware and software.
     /// Make sure the Driver is properly configured before calling init().
@@ -79,11 +86,15 @@ public:
     uint8_t           spiBurstWrite(uint8_t reg, const uint8_t* src, uint8_t len);
 
 protected:
+    void setDataKind(DataKind d);
+    void setSlaveSelect(uint8_t level);
     /// Reference to the RHGenericSPI instance to use to trasnfer data with teh SPI device
     RHGenericSPI&       _spi;
 
     /// The pin number of the Slave Selct pin that is used to select the desired device.
     uint8_t             _slaveSelectPin;
+    uint8_t             _slaveSelectPin2;
+    DataKind            _currentDataMode;
 };
 
 #endif

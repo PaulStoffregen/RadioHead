@@ -10,7 +10,7 @@
 #include <RadioHead.h>
 
 #if (RH_PLATFORM == RH_PLATFORM_ARDUINO)
-#include <SPI.h> // for SPI_HAS_TRANSACTION and SPISettings
+  #include <SPI.h> // for SPI_HAS_TRANSACTION and SPISettings
 #endif
 
 /////////////////////////////////////////////////////////////////////
