@@ -510,7 +510,6 @@
   #define MAPLE_TIMER 1
   #define PROGMEM
   #define memcpy_P memcpy
-  #define Serial Serial2
 #else
   #include <SPI.h>
   #define RH_HAVE_HARDWARE_SPI
