@@ -7,14 +7,12 @@
 #ifndef RHHardwareSPI_h
 #define RHHardwareSPI_h
 
-#include <RHGenericSPI.h>
+#include "RHGenericSPI.h"
 
-#if (RH_PLATFORM == RH_PLATFORM_STM32) // Maple etc
-#include <HardwareSPI.h>
-#elif (RH_PLATFORM == RH_PLATFORM_STM32STD) // STM32F4 Discovery
-#include <HardwareSPI.h>
+#if (RH_PLATFORM == RH_PLATFORM_STM32 || RH_PLATFORM == RH_PLATFORM_STM32STD) // Maple etc
+ #include <HardwareSPI.h>
 #else
-#include <SPI.h>
+  #include <SPI.h> // for SPI_HAS_TRANSACTION and SPISettings
 #endif
 
 
@@ -60,6 +58,8 @@ public:
     /// Disables the SPI bus (leaving pin modes unchanged). 
     /// Call this after you have finished using the SPI interface.
     void end();
+private:
+    SPISettings _spiSettings;
 };
 
 // Built in default instance
