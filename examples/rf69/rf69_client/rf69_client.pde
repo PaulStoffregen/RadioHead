@@ -9,12 +9,14 @@
 // configuration
 // Tested on Moteino with RFM69 http://lowpowerlab.com/moteino/
 // Tested on miniWireless with RFM69 www.anarduino.com/miniwireless
+// Tested on Teensy 3.1 with RF69 on PJRC breakout board
 
 #include <SPI.h>
 #include <RH_RF69.h>
 
 // Singleton instance of the radio driver
 RH_RF69 rf69;
+//RH_RF69 rf69(15, 16); // For RF69 on PJRC breakout board with Teensy 3.1
 
 void setup() 
 {

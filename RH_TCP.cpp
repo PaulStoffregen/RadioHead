@@ -1,12 +1,12 @@
 // RH_TCP.cpp
 //
 // Copyright (C) 2014 Mike McCauley
-// $Id: RH_TCP.cpp,v 1.3 2014/05/30 19:30:54 mikem Exp $
+// $Id: RH_TCP.cpp,v 1.5 2015/08/13 02:45:47 mikem Exp $
 
 #include <RadioHead.h>
 
 // This can only build on Linux and compatible systems
-#if (RH_PLATFORM == RH_PLATFORM_SIMULATOR) 
+#if (RH_PLATFORM == RH_PLATFORM_UNIX) 
 
 #include <RH_TCP.h>
 #include <sys/types.h>
@@ -201,6 +201,40 @@ bool RH_TCP::available()
 	_rxBufFull= false;
     }
     return _rxBufValid;
+}
+
+// Block until something is available
+void RH_TCP::waitAvailable()
+{
+    waitAvailableTimeout(0); // 0 = Wait forever
+}
+
+// Block until something is available or timeout expires
+bool RH_TCP::waitAvailableTimeout(uint16_t timeout)
+{
+    int            max_fd;
+    fd_set         input;
+    int            result;
+
+    FD_ZERO(&input);
+    FD_SET(_socket, &input);
+    max_fd = _socket + 1;
+
+    if (timeout)
+    {
+	struct timeval timer;
+	// Timeout is in milliseconds
+	timer.tv_sec  = timeout / 1000;
+	timer.tv_usec = (timeout % 1000) * 1000;
+	result = select(max_fd, &input, NULL, NULL, &timer);
+    }
+    else
+    {
+	result = select(max_fd, &input, NULL, NULL, NULL);
+    }
+    if (result < 0)
+	fprintf(stderr, "RH_TCP::waitAvailableTimeout: select failed %s\n", strerror(errno));
+    return result > 0;
 }
 
 bool RH_TCP::recv(uint8_t* buf, uint8_t* len)

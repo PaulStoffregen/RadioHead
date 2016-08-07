@@ -1,7 +1,7 @@
 // RH_TCP.h
 // Author: Mike McCauley (mikem@aierspayce.com)
 // Copyright (C) 2014 Mike McCauley
-// $Id: RH_TCP.h,v 1.3 2014/05/30 19:30:54 mikem Exp $
+// $Id: RH_TCP.h,v 1.4 2015/08/13 02:45:47 mikem Exp $
 #ifndef RH_TCP_h
 #define RH_TCP_h
 
@@ -82,10 +82,21 @@ public:
     /// Tests whether a new message is available
     /// from the Driver. 
     /// On most drivers, this will also put the Driver into RHModeRx mode until
-    /// a message is actually received bythe transport, when it wil be returned to RHModeIdle.
+    /// a message is actually received by the transport, when it will be returned to RHModeIdle.
     /// This can be called multiple times in a timeout loop
     /// \return true if a new, complete, error-free uncollected message is available to be retreived by recv()
     virtual bool available();
+
+    /// Wait until a new message is available from the driver.
+    /// Blocks until a complete message is received as reported by available()
+    virtual void waitAvailable();
+
+    /// Wait until a new message is available from the driver
+    /// or the timeout expires
+    /// Blocks until a complete message is received as reported by available()
+    /// \param[in] timeout The maximum time to wait in milliseconds
+    /// \return true if a message is available as reported by available()
+    virtual bool waitAvailableTimeout(uint16_t timeout);
 
     /// Turns the receiver on if it not already on.
     /// If there is a valid message available, copy it to buf and return true

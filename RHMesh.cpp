@@ -9,7 +9,7 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
-// $Id: RHMesh.cpp,v 1.5 2014/06/24 00:12:57 mikem Exp $
+// $Id: RHMesh.cpp,v 1.9 2015/08/13 02:45:47 mikem Exp $
 
 #include <RHMesh.h>
 
@@ -28,7 +28,7 @@ RHMesh::RHMesh(RHGenericDriver& driver, uint8_t thisAddress)
 ////////////////////////////////////////////////////////////////////
 // Discovers a route to the destination (if necessary), sends and 
 // waits for delivery to the next hop (but not for delivery to the final destination)
-uint8_t RHMesh::sendtoWait(uint8_t* buf, uint8_t len, uint8_t address)
+uint8_t RHMesh::sendtoWait(uint8_t* buf, uint8_t len, uint8_t address, uint8_t flags)
 {
     if (len > RH_MESH_MAX_MESSAGE_LEN)
 	return RH_ROUTER_ERROR_INVALID_LENGTH;
@@ -44,7 +44,7 @@ uint8_t RHMesh::sendtoWait(uint8_t* buf, uint8_t len, uint8_t address)
     MeshApplicationMessage* a = (MeshApplicationMessage*)&_tmpMessage;
     a->header.msgType = RH_MESH_MESSAGE_TYPE_APPLICATION;
     memcpy(a->data, buf, len);
-    return RHRouter::sendtoWait(_tmpMessage, sizeof(RHMesh::MeshMessageHeader) + len, address);
+    return RHRouter::sendtoWait(_tmpMessage, sizeof(RHMesh::MeshMessageHeader) + len, address, flags);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -65,17 +65,21 @@ bool RHMesh::doArp(uint8_t address)
     uint8_t messageLen = sizeof(_tmpMessage);
     // FIXME: timeout should be configurable
     unsigned long starttime = millis();
-    while ((millis() - starttime) < 4000)
+    int32_t timeLeft;
+    while ((timeLeft = RH_MESH_ARP_TIMEOUT - (millis() - starttime)) > 0)
     {
-	if (RHRouter::recvfromAck(_tmpMessage, &messageLen))
+	if (waitAvailableTimeout(timeLeft))
 	{
-	    if (   messageLen > 1
-		&& p->header.msgType == RH_MESH_MESSAGE_TYPE_ROUTE_DISCOVERY_RESPONSE)
+	    if (RHRouter::recvfromAck(_tmpMessage, &messageLen))
 	    {
-		// Got a reply, now add the next hop to the dest to the routing table
-		// The first hop taken is the first octet
-		addRouteTo(address, headerFrom());
-		return true;
+		if (   messageLen > 1
+		       && p->header.msgType == RH_MESH_MESSAGE_TYPE_ROUTE_DISCOVERY_RESPONSE)
+		{
+		    // Got a reply, now add the next hop to the dest to the routing table
+		    // The first hop taken is the first octet
+		    addRouteTo(address, headerFrom());
+		    return true;
+		}
 	    }
 	}
 	YIELD;
@@ -201,7 +205,7 @@ bool RHMesh::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t* d
 	    {
 		// This route discovery is for us. Unicast the whole route back to the originator
 		// as a RH_MESH_MESSAGE_TYPE_ROUTE_DISCOVERY_RESPONSE
-		// We are certain to have a route there, becuase we just got it
+		// We are certain to have a route there, because we just got it
 		d->header.msgType = RH_MESH_MESSAGE_TYPE_ROUTE_DISCOVERY_RESPONSE;
 		RHRouter::sendtoWait((uint8_t*)d, tmpMessageLen, _source);
 	    }
@@ -212,7 +216,7 @@ bool RHMesh::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t* d
 		tmpMessageLen++;
 		// Have to impersonate the source
 		// REVISIT: if this fails what can we do?
-		RHRouter::sendtoWait(_tmpMessage, tmpMessageLen, RH_BROADCAST_ADDRESS, _source);
+		RHRouter::sendtoFromSourceWait(_tmpMessage, tmpMessageLen, RH_BROADCAST_ADDRESS, _source);
 	    }
 	}
     }
@@ -223,11 +227,15 @@ bool RHMesh::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t* d
 bool RHMesh::recvfromAckTimeout(uint8_t* buf, uint8_t* len, uint16_t timeout, uint8_t* from, uint8_t* to, uint8_t* id, uint8_t* flags)
 {  
     unsigned long starttime = millis();
-    while ((millis() - starttime) < timeout)
+    int32_t timeLeft;
+    while ((timeLeft = timeout - (millis() - starttime)) > 0)
     {
-	if (recvfromAck(buf, len, from, to, id, flags))
-	    return true;
-	YIELD;
+	if (waitAvailableTimeout(timeLeft))
+	{
+	    if (recvfromAck(buf, len, from, to, id, flags))
+		return true;
+	    YIELD;
+	}
     }
     return false;
 }

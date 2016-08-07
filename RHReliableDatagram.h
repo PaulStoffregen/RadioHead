@@ -2,7 +2,7 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
-// $Id: RHReliableDatagram.h,v 1.12 2014/05/30 19:30:54 mikem Exp $
+// $Id: RHReliableDatagram.h,v 1.17 2016/04/04 01:40:12 mikem Exp $
 
 #ifndef RHReliableDatagram_h
 #define RHReliableDatagram_h
@@ -13,6 +13,12 @@
 // The top 4 bits of the flags are reserved for RadioHead. The lower 4 bits are reserved
 // for application layer use.
 #define RH_FLAGS_ACK 0x80
+
+/// the default retry timeout in milliseconds
+#define RH_DEFAULT_TIMEOUT 200
+
+/// The default number of retries
+#define RH_DEFAULT_RETRIES 3
 
 /////////////////////////////////////////////////////////////////////
 /// \class RHReliableDatagram RHReliableDatagram.h <RHReliableDatagram.h>
@@ -62,6 +68,13 @@
 /// Central server-type sketches should be very cautious about their
 /// retransmit strategy and configuration lest they hang for a long time
 /// trying to reply to clients that are unreachable.
+///
+/// Caution: if you have a radio network with a mixture of slow and fast
+/// processors and ReliableDatagrams, you may be affected by race conditions
+/// where the fast processor acknowledges a message before the sender is ready
+/// to process the acknowledgement. Best practice is to use the same processors (and
+/// radios) throughout your network.
+///
 class RHReliableDatagram : public RHDatagram
 {
 public:
@@ -76,14 +89,23 @@ public:
     /// transmission of the message. It must be at least longer than the the transmit 
     /// time of the acknowledgement (preamble+6 octets) plus the latency/poll time of the receiver. 
     /// For fast modulation schemes you can considerably shorten this time.
+    /// Caution: if you are using slow packet rates and long packets 
+    /// you may need to change the timeout for reliable operations.
     /// The actual timeout is randomly varied between timeout and timeout*2.
     /// \param[in] timeout The new timeout period in milliseconds
     void setTimeout(uint16_t timeout);
 
-    /// Sets the max number of retries. Defaults to 3. If set to 0, the message will only be sent once.
-    /// sendtoWait will give up and return false if there is no ack received after all transmissions time out.
+    /// Sets the maximum number of retries. Defaults to 3 at construction time. 
+    /// If set to 0, each message will only ever be sent once.
+    /// sendtoWait will give up and return false if there is no ack received after all transmissions time out
+    /// and the retries count is exhausted.
     /// param[in] retries The maximum number a retries.
     void setRetries(uint8_t retries);
+
+    /// Returns the currently configured maximum retries count.
+    /// Can be changed with setRetries().
+    /// \return The currently configured maximum number of retries.
+    uint8_t retries();
 
     /// Send the message (with retries) and waits for an ack. Returns true if an acknowledgement is received.
     /// Synchronous: any message other than the desired ACK received while waiting is discarded.
@@ -107,8 +129,6 @@ public:
     /// If the message is not a broadcast, acknowledge to the sender before returning.
     /// You should be sure to call this function frequently enough to not miss any messages
     /// It is recommended that you call it in your main loop.
-    /// Caution: terminates any transmit that is currently occurring. If you dont want this to happen, 
-    /// use waitPacketSent() first.
     /// \param[in] buf Location to copy the received message
     /// \param[in,out] len Available space in buf. Set to the actual number of octets copied.
     /// \param[in] from If present and not NULL, the referenced uint8_t will be set to the SRC address
@@ -123,8 +143,6 @@ public:
     /// or the timeout expires. Starts the receiver automatically.
     /// You should be sure to call this function frequently enough to not miss any messages
     /// It is recommended that you call it in your main loop.
-    /// Caution: terminates any transmit that is currently occurring. If you dont want this to happen, 
-    /// use waitPacketSent() first.
     /// \param[in] buf Location to copy the received message
     /// \param[in,out] len Available space in buf. Set to the actual number of octets copied.
     /// \param[in] timeout Maximum time to wait in milliseconds

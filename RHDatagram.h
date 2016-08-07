@@ -1,7 +1,7 @@
-// RF22Datagram.h
+// RHDatagram.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
-// $Id: RHDatagram.h,v 1.10 2014/05/23 02:20:17 mikem Exp $
+// $Id: RHDatagram.h,v 1.14 2015/08/12 23:18:51 mikem Exp $
 
 #ifndef RHDatagram_h
 #define RHDatagram_h
@@ -35,12 +35,13 @@
 ///
 /// \par Headers
 ///
-/// Each message sent and received by a RadioHead driver includes 4 headers:
-/// -TO The node address that the message is being sent to (broadcast RH_BROADCAST_ADDRESS (255) is permitted)
-/// -FROM The node address of the sending node
-/// -ID A message ID, distinct (over short time scales) for each message sent by a particilar node
-/// -FLAGS A bitmask of flags. The most significant 4 bits are reserved for use by RadioHead. The least
-/// significant 4 bits are reserved for applications.
+/// Each message sent and received by a RadioHead driver includes 4 headers:<br>
+/// \b TO The node address that the message is being sent to (broadcast RH_BROADCAST_ADDRESS (255) is permitted)<br>
+/// \b FROM The node address of the sending node<br>
+/// \b ID A message ID, distinct (over short time scales) for each message sent by a particilar node<br>
+/// \b FLAGS A bitmask of flags. The most significant 4 bits are reserved for use by RadioHead. The least
+/// significant 4 bits are reserved for applications.<br>
+///
 class RHDatagram
 {
 public:
@@ -76,8 +77,6 @@ public:
     /// If a message is copied, *len is set to the length.
     /// You should be sure to call this function frequently enough to not miss any messages
     /// It is recommended that you call it in your main loop.
-    /// Caution: terminates any transmit that is currently occurring. If you dont want this to happen, 
-    /// use waitPacketSent() first.
     /// \param[in] buf Location to copy the received message
     /// \param[in,out] len Pointer to available space in buf. Set to the actual number of octets copied.
     /// \param[in] from If present and not NULL, the referenced uint8_t will be set to the FROM address
@@ -93,15 +92,11 @@ public:
     /// On most drivers, this will also put the Driver into RHModeRx mode until
     /// a message is actually received bythe transport, when it will be returned to RHModeIdle.
     /// This can be called multiple times in a timeout loop.
-    /// Caution: terminates any transmit that is currently occurring. If you dont want this to happen, 
-    /// use waitPacketSent() first.
     /// \return true if a new, complete, error-free uncollected message is available to be retreived by recv()
     bool            available();
 
     /// Starts the Driver receiver and blocks until a valid received 
     /// message is available.
-    /// Caution: terminates any transmit that is currently occurring. If you dont want this to happen, 
-    /// use waitPacketSent() first.
     void            waitAvailable();
 
     /// Blocks until the transmitter 
@@ -111,12 +106,10 @@ public:
     /// Blocks until the transmitter is no longer transmitting.
     /// or until the timeout occuers, whichever happens first
     /// \param[in] timeout Maximum time to wait in milliseconds.
-    /// \return true if the RF22 completed transmission within the timeout period. False if it timed out.
+    /// \return true if the radio completed transmission within the timeout period. False if it timed out.
     bool            waitPacketSent(uint16_t timeout);
 
     /// Starts the Driver receiver and blocks until a received message is available or a timeout
-    /// Caution: terminates any transmit that is currently occurring. If you dont want this to happen, 
-    /// use waitPacketSent() first.
     /// \param[in] timeout Maximum time to wait in milliseconds.
     /// \return true if a message is available
     bool            waitAvailableTimeout(uint16_t timeout);

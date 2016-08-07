@@ -1,10 +1,13 @@
 // RH_Serial.cpp
 //
 // Copyright (C) 2014 Mike McCauley
-// $Id: RH_Serial.cpp,v 1.10 2014/06/24 02:40:12 mikem Exp $
+// $Id: RH_Serial.cpp,v 1.12 2016/04/04 01:40:12 mikem Exp $
 
 #include <RH_Serial.h>
-#include <HardwareSerial.h>
+#if (RH_PLATFORM == RH_PLATFORM_STM32F2)
+#else
+ #include <HardwareSerial.h>
+#endif
 #include <RHCRC.h>
 
 RH_Serial::RH_Serial(HardwareSerial& serial)
@@ -12,6 +15,11 @@ RH_Serial::RH_Serial(HardwareSerial& serial)
     _serial(serial),
     _rxState(RxStateInitialising)
 {
+}
+
+HardwareSerial& RH_Serial::serial()
+{
+    return _serial;
 }
 
 bool RH_Serial::init()
@@ -28,6 +36,35 @@ bool RH_Serial::available()
     while (!_rxBufValid &&_serial.available())
 	handleRx(_serial.read());
     return _rxBufValid;
+}
+
+void RH_Serial::waitAvailable()
+{
+#if (RH_PLATFORM == RH_PLATFORM_UNIX)
+    // Unix version driver in RHutil/HardwareSerial knows how to wait without polling
+    while (!available())
+	_serial.waitAvailable();
+#else
+    RHGenericDriver::waitAvailable();
+#endif
+}
+
+bool RH_Serial::waitAvailableTimeout(uint16_t timeout)
+{
+#if (RH_PLATFORM == RH_PLATFORM_UNIX)
+    // Unix version driver in RHutil/HardwareSerial knows how to wait without polling
+    unsigned long starttime = millis();
+    while ((millis() - starttime) < timeout)
+    {
+	_serial.waitAvailableTimeout(timeout - (millis() - starttime));
+        if (available())
+           return true;
+	YIELD;
+    }
+    return false;
+#else
+    return RHGenericDriver::waitAvailableTimeout(timeout);
+#endif
 }
 
 void  RH_Serial::handleRx(uint8_t ch)
@@ -129,6 +166,7 @@ void RH_Serial::validateRxBuf()
 	_rxBad++;
 	return;
     }
+
     // Extract the 4 headers
     _rxHeaderTo    = _rxBuf[0];
     _rxHeaderFrom  = _rxBuf[1];

@@ -1,7 +1,7 @@
 // RHGenericDriver.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-// $Id: RHGenericDriver.h,v 1.10 2014/05/23 02:20:17 mikem Exp $
+// $Id: RHGenericDriver.h,v 1.17 2016/04/04 01:40:12 mikem Exp $
 
 #ifndef RHGenericDriver_h
 #define RHGenericDriver_h
@@ -45,6 +45,7 @@ public:
     typedef enum
     {
 	RHModeInitialising = 0, ///< Transport is initialising. Initial default value until init() is called..
+	RHModeSleep,            ///< Transport hardware is in low power sleep mode (if supported)
 	RHModeIdle,             ///< Transport is idle.
 	RHModeTx,               ///< Transport is in the process of transmitting a message.
 	RHModeRx                ///< Transport is in the process of receiving a message.
@@ -60,12 +61,11 @@ public:
 
     /// Tests whether a new message is available
     /// from the Driver. 
-    /// On most drivers, this will also put the Driver into RHModeRx mode until
-    /// a message is actually received bythe transport, when it wil be returned to RHModeIdle.
+    /// On most drivers, if there is an uncollected received message, and there is no message
+    /// currently bing transmitted, this will also put the Driver into RHModeRx mode until
+    /// a message is actually received by the transport, when it will be returned to RHModeIdle.
     /// This can be called multiple times in a timeout loop.
-    /// Caution: terminates any transmit that is currently occurring. If you dont want this to happen, 
-    /// use waitPacketSent() first.
-    /// \return true if a new, complete, error-free uncollected message is available to be retreived by recv()
+    /// \return true if a new, complete, error-free uncollected message is available to be retreived by recv().
     virtual bool available() = 0;
 
     /// Turns the receiver on if it not already on.
@@ -74,8 +74,6 @@ public:
     /// If a message is copied, *len is set to the length (Caution, 0 length messages are permitted).
     /// You should be sure to call this function frequently enough to not miss any messages
     /// It is recommended that you call it in your main loop.
-    /// Caution: terminates any transmit that is currently occurring. If you dont want this to happen, 
-    /// use waitPacketSent() first.
     /// \param[in] buf Location to copy the received message
     /// \param[in,out] len Pointer to available space in buf. Set to the actual number of octets copied.
     /// \return true if a valid message was copied to buf
@@ -138,9 +136,13 @@ public:
     virtual void           setHeaderId(uint8_t id);
 
     /// Sets and clears bits in the FLAGS header to be sent in all subsequent messages
-    /// \param[in] set bitmask of bits to be set
-    /// \param[in] clear bitmask of flags to clear
-    virtual void           setHeaderFlags(uint8_t set, uint8_t clear = RH_FLAGS_NONE);
+    /// First it clears he FLAGS according to the clear argument, then sets the flags according to the 
+    /// set argument. The default for clear always clears the application specific flags.
+    /// \param[in] set bitmask of bits to be set. Flags are cleared with the clear mask before being set.
+    /// \param[in] clear bitmask of flags to clear. Defaults to RH_FLAGS_APPLICATION_SPECIFIC
+    ///            which clears the application specific flags, resulting in new application specific flags
+    ///            identical to the set.
+    virtual void           setHeaderFlags(uint8_t set, uint8_t clear = RH_FLAGS_APPLICATION_SPECIFIC);
 
     /// Tells the receiver to accept messages with any TO address, not just messages
     /// addressed to thisAddress or the broadcast address
@@ -176,6 +178,14 @@ public:
     /// Sets the operating mode of the transport.
     void            setMode(RHMode mode);
 
+    /// Sets the transport hardware into low-power sleep mode
+    /// (if supported). May be overridden by specific drivers to initialte sleep mode.
+    /// If successful, the transport will stay in sleep mode until woken by 
+    /// changing mode it idle, transmit or receive (eg by calling send(), recv(), available() etc)
+    /// \return true if sleep mode is supported by transport hardware and the RadioHead driver, and if sleep mode
+    ///         was successfully entered. If sleep mode is not suported, return false.
+    virtual bool    sleep();
+
     /// Prints a data buffer in HEX.
     /// For diagnostic use
     /// \param[in] prompt string to preface the print
@@ -183,10 +193,27 @@ public:
     /// \param[in] len Length of the buffer in octets.
     static void    printBuffer(const char* prompt, const uint8_t* buf, uint8_t len);
 
+    /// Returns the count of the number of bad received packets (ie packets with bad lengths, checksum etc)
+    /// which were rejected and not delivered to the application.
+    /// Caution: not all drivers can correctly report this count. Some underlying hardware only report
+    /// good packets.
+    /// \return The number of bad packets received.
+    uint16_t       rxBad();
+
+    /// Returns the count of the number of 
+    /// good received packets
+    /// \return The number of good packets received.
+    uint16_t       rxGood();
+
+    /// Returns the count of the number of 
+    /// packets successfully transmitted (though not necessarily received by the destination)
+    /// \return The number of packets successfully transmitted
+    uint16_t       txGood();
+
 protected:
 
     /// The current transport operating mode
-    volatile RHMode       _mode;
+    volatile RHMode     _mode;
 
     /// This node id
     uint8_t             _thisAddress;

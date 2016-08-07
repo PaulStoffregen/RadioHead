@@ -10,4 +10,4 @@
 INPUT=$1
 OUTPUT=$(basename $INPUT ".pde")
 
-g++ -g -I . -x c++ $INPUT tools/simMain.cpp RHGenericDriver.cpp RHMesh.cpp RHRouter.cpp RHReliableDatagram.cpp RHDatagram.cpp RH_TCP.cpp -o $OUTPUT
+g++ -g -I . -I RHutil -x c++ $INPUT tools/simMain.cpp RHGenericDriver.cpp RHMesh.cpp RHRouter.cpp RHReliableDatagram.cpp RHDatagram.cpp RH_TCP.cpp RH_Serial.cpp RHCRC.cpp RHutil/HardwareSerial.cpp -o $OUTPUT

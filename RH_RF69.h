@@ -1,7 +1,7 @@
 // RH_RF69.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-// $Id: RH_RF69.h,v 1.19 2014/07/01 01:23:58 mikem Exp mikem $
+// $Id: RH_RF69.h,v 1.32 2016/07/07 00:02:53 mikem Exp mikem $
 //
 ///
 
@@ -299,6 +299,12 @@
 /// - RFM69 modules from http://www.hoperfusa.com such as http://www.hoperfusa.com/details.jsp?pid=145
 /// - Anarduino MiniWireless -CW and -HW boards http://www.anarduino.com/miniwireless/ including
 ///  the marvellous high powered MinWireless-HW (with 20dBm output for excellent range)
+/// - the excellent Rocket Scream Mini Ultra Pro with the RFM69HCW 
+///   http://www.rocketscream.com/blog/product/mini-ultra-pro-with-radio/
+/// - The excellent talk2 Whisper Node boards 
+///   (https://talk2.wisen.com.au/ and https://bitbucket.org/talk2/), 
+///   an Arduino Nano compatible board, which include an on-board RF69 radio, external antenna, 
+///   run on 2xAA batteries and support low power operations. RF69 examples work without modification.
 ///
 /// \par Overview
 ///
@@ -367,7 +373,7 @@
 /// programming connection and an antenna to make it work.
 ///
 /// If you have a bare RFM69W that you want to connect to an Arduino, you
-/// might use these connections (untested): CAUTION: you must use a 3.3V type
+/// might use these connections: CAUTION: you must use a 3.3V type
 /// Arduino, otherwise you will also need voltage level shifters between the
 /// Arduino and the RFM69.  CAUTION, you must also ensure you connect an
 /// antenna
@@ -383,6 +389,18 @@
 ///        MISO pin D12----------MISO  (SPI Data out)
 /// \endcode
 ///
+/// For Arduino Due, use these connections:
+/// \code
+///                 Arduino      RFM69W
+///                 GND----------GND   (ground in)
+///                 3V3----------3.3V  (3.3V in)
+/// interrupt 0 pin D2-----------DIO0  (interrupt request out)
+///          SS pin D10----------NSS   (chip select in)
+///       SCK SPI pin 3----------SCK   (SPI clock in)
+///      MOSI SPI pin 4----------MOSI  (SPI Data in)
+///      MISO SPI pin 1----------MISO  (SPI Data out)
+/// \endcode
+///
 /// With these connections, you can then use the default constructor RH_RF69().
 /// You can override the default settings for the SS pin and the interrupt in
 /// the RH_RF69 constructor if you wish to connect the slave select SS to other
@@ -390,6 +408,84 @@
 /// for Mega) or the interrupt request to other than pin D2 (Caution,
 /// different processors have different constraints as to the pins available
 /// for interrupts).
+///
+/// If you have a Teensy 3.1 and a compatible RFM69 breakout board, you will need to 
+/// construct the RH_RF69 instance like this:
+/// \code
+/// RH_RF69 driver(15, 16);
+/// \endcode
+///
+/// If you have a MoteinoMEGA https://lowpowerlab.com/shop/moteinomega
+/// with RFM69 on board, you dont need to make any wiring connections 
+/// (the RFM69 module is soldered onto the MotienoMEGA), but you must initialise the RH_RF69
+/// constructor like this:
+/// \code
+/// RH_RF69 driver(4, 2);
+/// \endcode
+/// Make sure you have the MoteinoMEGA core installed in your Arduino hardware folder as described in the
+/// documentation for the MoteinoMEGA.
+///
+/// If you have an Arduino M0 Pro from arduino.org, 
+/// you should note that you cannot use Pin 2 for the interrupt line 
+/// (Pin 2 is for the NMI only). The same comments apply to Pin 4 on Arduino Zero from arduino.cc.
+/// Instead you can use any other pin (we use Pin 3) and initialise RH_RF69 like this:
+/// \code
+/// // Slave Select is pin 10, interrupt is Pin 3
+/// RH_RF69 driver(10, 3);
+/// \endcode
+///
+/// If you have a Rocket Scream Mini Ultra Pro with the RFM69HCW
+/// - Ensure you have Arduino SAMD board support 1.6.5 or later in Arduino IDE 1.6.8 or later.
+/// - The radio SS is hardwired to pin D5 and the DIO0 interrupt to pin D2, 
+/// so you need to initialise the radio like this:
+/// \code
+/// RH_RF69 driver(5, 2);
+/// \endcode
+/// - The name of the serial port on that board is 'SerialUSB', not 'Serial', so this may be helpful at the top of our
+///   sample sketches:
+/// \code
+/// #define Serial SerialUSB
+/// \endcode
+/// - You also need this in setup before radio initialisation  
+/// \code
+/// // Ensure serial flash is not interfering with radio communication on SPI bus
+///  pinMode(4, OUTPUT);
+///  digitalWrite(4, HIGH);
+/// \endcode
+/// - and if you have a 915MHz part, you need this after driver/manager intitalisation:
+/// \code
+/// rf69.setFrequency(915.0);
+/// rf69.setTxPower(20);
+/// \endcode
+/// which adds up to modifying sample sketches something like:
+/// \code
+/// #include <SPI.h>
+/// #include <RH_RF69.h>
+/// RH_RF69 rf69(5, 2); // Rocket Scream Mini Ultra Pro with the RFM69HCW
+/// #define Serial SerialUSB
+/// 
+/// void setup() 
+/// {
+///   // Ensure serial flash is not interfering with radio communication on SPI bus
+///   pinMode(4, OUTPUT);
+///   digitalWrite(4, HIGH);
+/// 
+///   Serial.begin(9600);
+///   while (!Serial) ; // Wait for serial port to be available
+///   if (!rf69.init())
+///     Serial.println("init failed");
+///   rf69.setFrequency(915.0);
+///   rf69.setTxPower(20);
+/// }
+/// ...
+/// \endcode
+///
+/// If you have a talk2 Whisper Node board with on-board RF69 radio, 
+/// the example rf69_* sketches work without modifications. Initialise the radio like
+/// with the default constructor:
+/// \code
+///  RH_RF69 driver;
+/// \endcode
 ///
 /// It is possible to have 2 or more radios connected to one Arduino, provided
 /// each radio has its own SS and interrupt line (SCK, SDI and SDO are common
@@ -506,6 +602,8 @@
 /// \endcode
 /// (Caution: we dont claim laboratory accuracy for these measurements)
 /// You would not expect to get anywhere near these powers to air with a simple 1/4 wavelength wire antenna.
+/// Caution: although the RFM69 appears to have a PC antenna on board, you will get much better power and range even 
+/// with just a 1/4 wave wire antenna.
 ///
 /// \par Performance
 ///
@@ -541,6 +639,7 @@ public:
 	uint8_t    reg_05;   ///< Value for register RH_RF69_REG_05_FDEVMSB
 	uint8_t    reg_06;   ///< Value for register RH_RF69_REG_06_FDEVLSB
 	uint8_t    reg_19;   ///< Value for register RH_RF69_REG_19_RXBW
+	uint8_t    reg_1a;   ///< Value for register RH_RF69_REG_1A_AFCBW
 	uint8_t    reg_37;   ///< Value for register RH_RF69_REG_37_PACKETCONFIG1
     } ModemConfig;
   
@@ -551,32 +650,40 @@ public:
     /// These are indexes into MODEM_CONFIG_TABLE. We strongly recommend you use these symbolic
     /// definitions and not their integer equivalents: its possible that new values will be
     /// introduced in later versions (though we will try to avoid it).
+    /// CAUTION: some of these configurations do not work corectly and are marked as such.
     typedef enum
     {
-	FSK_Rb2Fd5 = 0,	   ///< FSK, No Manchester, Rb = 2kbs,    Fd = 5kHz
-	FSK_Rb2_4Fd2_4,    ///< FSK, No Manchester, Rb = 2.4kbs,  Fd = 2.4kHz
-	FSK_Rb4_8Fd4_8,    ///< FSK, No Manchester, Rb = 4.8kbs,  Fd = 4.8kHz
-	FSK_Rb9_6Fd9_6,    ///< FSK, No Manchester, Rb = 9.6kbs,  Fd = 9.6kHz
-	FSK_Rb19_2Fd19_2,  ///< FSK, No Manchester, Rb = 19.2kbs, Fd = 19.2kHz
-	FSK_Rb38_4Fd38_4,  ///< FSK, No Manchester, Rb = 38.4kbs, Fd = 38.4kHz
-	FSK_Rb57_6Fd120,   ///< FSK, No Manchester, Rb = 57.6kbs, Fd = 120kHz
-	FSK_Rb125Fd125,    ///< FSK, No Manchester, Rb = 125kbs,  Fd = 125kHz
-	FSK_Rb250Fd250,    ///< FSK, No Manchester, Rb = 250kbs,  Fd = 250kHz
-	FSK_Rb55555Fd50,   ///< FSK, No Manchester, Rb = 55555kbs,Fd = 50kHz for RFM69 lib compatibility
+	FSK_Rb2Fd5 = 0,	   ///< FSK, Whitening, Rb = 2kbs,    Fd = 5kHz
+	FSK_Rb2_4Fd4_8,    ///< FSK, Whitening, Rb = 2.4kbs,  Fd = 4.8kHz 
+	FSK_Rb4_8Fd9_6,    ///< FSK, Whitening, Rb = 4.8kbs,  Fd = 9.6kHz 
+	FSK_Rb9_6Fd19_2,   ///< FSK, Whitening, Rb = 9.6kbs,  Fd = 19.2kHz
+	FSK_Rb19_2Fd38_4,  ///< FSK, Whitening, Rb = 19.2kbs, Fd = 38.4kHz
+	FSK_Rb38_4Fd76_8,  ///< FSK, Whitening, Rb = 38.4kbs, Fd = 76.8kHz
+	FSK_Rb57_6Fd120,   ///< FSK, Whitening, Rb = 57.6kbs, Fd = 120kHz
+	FSK_Rb125Fd125,    ///< FSK, Whitening, Rb = 125kbs,  Fd = 125kHz
+	FSK_Rb250Fd250,    ///< FSK, Whitening, Rb = 250kbs,  Fd = 250kHz
+	FSK_Rb55555Fd50,   ///< FSK, Whitening, Rb = 55555kbs,Fd = 50kHz for RFM69 lib compatibility
 
-	GFSK_Rb2Fd5,	    ///< GFSK, No Manchester, Rb = 2kbs,    Fd = 5kHz
-	GFSK_Rb2_4Fd2_4,    ///< GFSK, No Manchester, Rb = 2.4kbs,  Fd = 2.4kHz
-	GFSK_Rb4_8Fd4_8,    ///< GFSK, No Manchester, Rb = 4.8kbs,  Fd = 4.8kHz
-	GFSK_Rb9_6Fd9_6,    ///< GFSK, No Manchester, Rb = 9.6kbs,  Fd = 9.6kHz
-	GFSK_Rb19_2Fd19_2,  ///< GFSK, No Manchester, Rb = 19.2kbs, Fd = 19.2kHz
-	GFSK_Rb38_4Fd38_4,  ///< GFSK, No Manchester, Rb = 38.4kbs, Fd = 38.4kHz
-	GFSK_Rb57_6Fd120,   ///< GFSK, No Manchester, Rb = 57.6kbs, Fd = 120kHz
-	GFSK_Rb125Fd125,    ///< GFSK, No Manchester, Rb = 125kbs,  Fd = 125kHz
-	GFSK_Rb250Fd250,    ///< GFSK, No Manchester, Rb = 250kbs,  Fd = 250kHz
-	GFSK_Rb55555Fd50,   ///< GFSK, No Manchester, Rb = 55555kbs,Fd = 50kHz
+	GFSK_Rb2Fd5,	    ///< GFSK, Whitening, Rb = 2kbs,    Fd = 5kHz
+	GFSK_Rb2_4Fd4_8,    ///< GFSK, Whitening, Rb = 2.4kbs,  Fd = 4.8kHz
+	GFSK_Rb4_8Fd9_6,    ///< GFSK, Whitening, Rb = 4.8kbs,  Fd = 9.6kHz
+	GFSK_Rb9_6Fd19_2,   ///< GFSK, Whitening, Rb = 9.6kbs,  Fd = 19.2kHz
+	GFSK_Rb19_2Fd38_4,  ///< GFSK, Whitening, Rb = 19.2kbs, Fd = 38.4kHz
+	GFSK_Rb38_4Fd76_8,  ///< GFSK, Whitening, Rb = 38.4kbs, Fd = 76.8kHz
+	GFSK_Rb57_6Fd120,   ///< GFSK, Whitening, Rb = 57.6kbs, Fd = 120kHz
+	GFSK_Rb125Fd125,    ///< GFSK, Whitening, Rb = 125kbs,  Fd = 125kHz
+	GFSK_Rb250Fd250,    ///< GFSK, Whitening, Rb = 250kbs,  Fd = 250kHz
+	GFSK_Rb55555Fd50,   ///< GFSK, Whitening, Rb = 55555kbs,Fd = 50kHz
 
-//	OOK_Rb1_2Bw75,       ///< OOK, No Manchester, Rb = 1.2kbs,  Rx Bandwidth = 75kHz. Not reliable: do not use
+	OOK_Rb1Bw1,         ///< OOK, Whitening, Rb = 1kbs,    Rx Bandwidth = 1kHz. 
+	OOK_Rb1_2Bw75,      ///< OOK, Whitening, Rb = 1.2kbs,  Rx Bandwidth = 75kHz. 
+	OOK_Rb2_4Bw4_8,     ///< OOK, Whitening, Rb = 2.4kbs,  Rx Bandwidth = 4.8kHz. 
+	OOK_Rb4_8Bw9_6,     ///< OOK, Whitening, Rb = 4.8kbs,  Rx Bandwidth = 9.6kHz. 
+	OOK_Rb9_6Bw19_2,    ///< OOK, Whitening, Rb = 9.6kbs,  Rx Bandwidth = 19.2kHz. 
+	OOK_Rb19_2Bw38_4,   ///< OOK, Whitening, Rb = 19.2kbs, Rx Bandwidth = 38.4kHz. 
+	OOK_Rb32Bw64,       ///< OOK, Whitening, Rb = 32kbs,   Rx Bandwidth = 64kHz. 
 
+//	Test,
     } ModemConfigChoice;
 
     /// Constructor. You can have multiple instances, but each instance must have its own
@@ -590,6 +697,8 @@ public:
     /// Caution: You must specify an interrupt capable pin.
     /// On many Arduino boards, there are limitations as to which pins may be used as interrupts.
     /// On Leonardo pins 0, 1, 2 or 3. On Mega2560 pins 2, 3, 18, 19, 20, 21. On Due and Teensy, any digital pin.
+    /// On Arduino Zero from arduino.cc, any digital pin other than 4.
+    /// On Arduino M0 Pro from arduino.org, any digital pin other than 2.
     /// On other Arduinos pins 2 or 3. 
     /// See http://arduino.cc/en/Reference/attachInterrupt for more details.
     /// On Chipkit Uno32, pins 38, 2, 7, 8, 35.
@@ -611,7 +720,7 @@ public:
 
     /// Reads the on-chip temperature sensor.
     /// The RF69 must be in Idle mode (= RF69 Standby) to measure temperature.
-    /// The measurement is uncalibrated and without calibration, you can expectit to be far from
+    /// The measurement is uncalibrated and without calibration, you can expect it to be far from
     /// correct.
     /// \return The measured temperature, in degrees C from -40 to 85 (uncalibrated)
     int8_t        temperatureRead();   
@@ -659,7 +768,7 @@ public:
     /// maximum VSWR of 3:1 at the antenna port.
     void           setTxPower(int8_t power);
 
-    /// Sets all the registered required to configure the data modem in the RF69, including the data rate, 
+    /// Sets all the registers required to configure the data modem in the RF69, including the data rate, 
     /// bandwidths etc. You can use this to configure the modem with custom configurations if none of the 
     /// canned configurations in ModemConfigChoice suit you.
     /// \param[in] config A ModemConfig structure containing values for the modem configuration registers.
@@ -720,13 +829,41 @@ public:
     /// encryption is disabled.
     void           setEncryptionKey(uint8_t* key = NULL);
 
-    /// Returns the time in millis since the last preamble was received, and when the last
+    /// Returns the time in millis since the most recent preamble was received, and when the most recent
     /// RSSI measurement was made.
     uint32_t getLastPreambleTime();
 
     /// The maximum message length supported by this driver
     /// \return The maximum message length supported by this driver
     uint8_t maxMessageLength();
+
+    /// Prints the value of a single register
+    /// to the Serial device if RH_HAVE_SERIAL is defined for the current platform
+    /// For debugging/testing only
+    /// \return true if successful
+    bool printRegister(uint8_t reg);
+
+    /// Prints the value of all the RF69 registers
+    /// to the Serial device if RH_HAVE_SERIAL is defined for the current platform
+    /// For debugging/testing only
+    /// \return true if successful
+    bool printRegisters();
+
+    /// Sets the radio operating mode for the case when the driver is idle (ie not
+    /// transmitting or receiving), allowing you to control the idle mode power requirements
+    /// at the expense of slower transitions to transmit and receive modes.
+    /// By default, the idle mode is RH_RF69_OPMODE_MODE_STDBY,
+    /// but eg setIdleMode(RH_RF69_OPMODE_MODE_SLEEP) will provide a much lower
+    /// idle current but slower transitions. Call this function after init().
+    /// \param[in] idleMode The chip operating mode to use when the driver is idle. One of RH_RF69_OPMODE_*
+    void setIdleMode(uint8_t idleMode);
+
+    /// Sets the radio into low-power sleep mode.
+    /// If successful, the transport will stay in sleep mode until woken by 
+    /// changing mode it idle, transmit or receive (eg by calling send(), recv(), available() etc)
+    /// Caution: there is a time penalty as the radio takes a finite time to wake from sleep mode.
+    /// \return true if sleep mode was successfully entered.
+    virtual bool    sleep();
 
 protected:
     /// This is a low level function to handle the interrupts for one instance of RF69.
@@ -756,6 +893,10 @@ protected:
 
     /// The configured interrupt pin connected to this instance
     uint8_t             _interruptPin;
+
+    /// The index into _deviceForInterrupt[] for this device (if an interrupt is already allocated)
+    /// else 0xff
+    uint8_t             _myInterruptIndex;
 
     /// The radio OP mode to use when mode is RHModeIdle
     uint8_t             _idleMode; 

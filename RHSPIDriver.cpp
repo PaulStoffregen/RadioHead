@@ -1,7 +1,7 @@
 // RHSPIDriver.cpp
 //
 // Copyright (C) 2014 Mike McCauley
-// $Id: RHSPIDriver.cpp,v 1.9 2014/05/03 00:20:36 mikem Exp $
+// $Id: RHSPIDriver.cpp,v 1.10 2015/12/16 04:55:33 mikem Exp $
 
 #include <RHSPIDriver.h>
 
@@ -26,14 +26,6 @@ bool RHSPIDriver::init()
     delay(100);
     return true;
 }
-
-// Ugly hack for testing SPI.beginTransaction...
-#if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined(SPI_HAS_TRANSACTION)
-#undef ATOMIC_BLOCK_START
-#undef ATOMIC_BLOCK_END
-#define ATOMIC_BLOCK_START SPI.beginTransaction(_spi._settings)
-#define ATOMIC_BLOCK_END   SPI.endTransaction()
-#endif
 
 uint8_t RHSPIDriver::spiRead(uint8_t reg)
 {
@@ -85,5 +77,7 @@ uint8_t RHSPIDriver::spiBurstWrite(uint8_t reg, const uint8_t* src, uint8_t len)
     return status;
 }
 
-
-
+void RHSPIDriver::setSlaveSelectPin(uint8_t slaveSelectPin)
+{
+    _slaveSelectPin = slaveSelectPin;
+}

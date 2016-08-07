@@ -1,7 +1,7 @@
 // RH_Serial.h
 //
 // Copyright (C) 2014 Mike McCauley
-// $Id: RH_Serial.h,v 1.7 2014/06/24 02:40:12 mikem Exp $
+// $Id: RH_Serial.h,v 1.11 2016/04/04 01:40:12 mikem Exp $
 
 // Works with any serial port. Tested with Arduino Mega connected to Serial1
 // Also works with 3DR Radio V1.3 Telemetry kit (serial at 57600baud)
@@ -17,7 +17,7 @@
 #define DLE 0x10
 #define SYN 0x16
 
-// Maximum message length (incgluding the headers) we are willing to support
+// Maximum message length (including the headers) we are willing to support
 #define RH_SERIAL_MAX_PAYLOAD_LEN 64
 
 // The length of the headers we add.
@@ -31,6 +31,10 @@
 // the one byte payload length is not encrpyted
 #ifndef RH_SERIAL_MAX_MESSAGE_LEN
 #define RH_SERIAL_MAX_MESSAGE_LEN (RH_SERIAL_MAX_PAYLOAD_LEN - RH_SERIAL_HEADER_LEN)
+#endif
+
+#if (RH_PLATFORM == RH_PLATFORM_STM32F2)
+ #define HardwareSerial USARTSerial
 #endif
 
 class HardwareSerial;
@@ -49,7 +53,14 @@ class HardwareSerial;
 /// - HopeRF HM-TR module http://www.hoperf.com/upload/rf_app/HM-TRS.pdf
 /// - Others
 ///
+/// Compiles and runs on Linux, OSX and all the microprocessers and MCUs suported by
+/// radiohead. On Linux and OSX, a RadioHead specific version of HardwareSerial (in RHutil/HardwareSerial.*)
+/// encapsulates access to any serial port (or suported USB-serial converter)
+///
 /// The packetised messages include message encapsulation, headers, a message payload and a checksum.
+/// It therefore can support robust binary message passing with error-detection and retransmission
+/// when used with the appropriate manager. This allows reliable serial communicaitons even over very long
+/// lines where noise might otherwise affect reliablity of the communications.
 ///
 /// \par Packet Format
 ///
@@ -95,14 +106,50 @@ class HardwareSerial;
 /// - Serial2: on pins 0 (Rx) and 1 (Tx)
 /// - Serial3: on pins 29 (Tx) and 30 (Rx)
 ///
+/// On Linux and OSX there can be any number of serial ports.
+/// - On Linux, names like /dev/ttyUSB0 (for a FTDO USB-serial converter)
+/// - On OSX, names like /dev/tty.usbserial-A501YSWL (for a FTDO USB-serial converter)
+///
 /// Note that it is necessary for you to select which Serial port your RF_Serial will use and pass it to the 
-/// contructor.
+/// contructor. On Linux you must pass an instance of HardwareSerial.
+///
+/// \par Testing
+/// 
+/// You can test this class and the RHReliableDatagram manager
+/// on Unix and OSX with back-to-back connected FTDI USB-serial adapters.
+/// Back-to-back means the TX of one is connected to the RX of the other and vice-versa. 
+/// You should also join the ground pins.
+///
+/// Assume the 2 USB-serial adapters are connected by USB
+/// and have been assigned device names: 
+/// /dev/ttyUSB0 and /dev/ttyUSB1.
+/// Build the example RHReliableDatagram client and server programs:
+/// \code
+/// tools/simBuild examples/serial/serial_reliable_datagram_server/serial_reliable_datagram_server.pde 
+/// tools/simBuild examples/serial/serial_reliable_datagram_client/serial_reliable_datagram_client.pde
+/// \endcode
+/// In one window run the server, specifying the device to use as an environment variable:
+/// \code
+/// RH_HARDWARESERIAL_DEVICE_NAME=/dev/ttyUSB1 ./serial_reliable_datagram_server 
+/// \endcode
+/// And in another window run the client, specifying the other device to use as an environment variable:
+/// \code
+/// RH_HARDWARESERIAL_DEVICE_NAME=/dev/ttyUSB0 ./serial_reliable_datagram_client 
+/// \endcode
+/// You should see the 2 programs passing messages to each other.
+/// 
 class RH_Serial : public RHGenericDriver
 {
 public:
     /// Constructor
-    /// \param[in] serial Reference to the HardwareSerial port which will be used by this instance
+    /// \param[in] serial Reference to the HardwareSerial port which will be used by this instance.
+    /// On Unix and OSX, this is an instance of RHutil/HardwareSerial. On 
+    /// Arduino and other, it is an instance of the built in HardwareSerial class.
     RH_Serial(HardwareSerial& serial);
+
+    /// Return the HardwareSerial port in use by this instance
+    /// \return The current HardwareSerial as a reference
+    HardwareSerial& serial();
 
     /// Initialise the Driver transport hardware and software.
     /// Make sure the Driver is properly configured before calling init().
@@ -110,14 +157,20 @@ public:
     virtual bool init();
 
     /// Tests whether a new message is available
-    /// from the Driver. 
-    /// On most drivers, this will also put the Driver into RHModeRx mode until
-    /// a message is actually received bythe transport, when it wil be returned to RHModeIdle.
-    /// This can be called multiple times in a timeout loop
+    /// This can be called multiple times in a timeout loop.
     /// \return true if a new, complete, error-free uncollected message is available to be retreived by recv()
     virtual bool available();
 
-    /// Turns the receiver on if it not already on.
+    /// Wait until a new message is available from the driver.
+    /// Blocks until a complete message is received as reported by available()
+    virtual void waitAvailable();
+
+    /// Wait until a new message is available from the driver or the timeout expires.
+    /// Blocks until a complete message is received as reported by available() or the timeout expires.
+    /// \param[in] timeout The maximum time to wait in milliseconds
+    /// \return true if a message is available as reported by available(), false on timeout.
+    virtual bool waitAvailableTimeout(uint16_t timeout);
+
     /// If there is a valid message available, copy it to buf and return true
     /// else return false.
     /// If a message is copied, *len is set to the length (Caution, 0 length messages are permitted).
@@ -200,5 +253,6 @@ protected:
 
 /// @example serial_reliable_datagram_client.pde
 /// @example serial_reliable_datagram_server.pde
+/// @example serial_gateway.pde
 
 #endif

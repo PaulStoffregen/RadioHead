@@ -1,7 +1,7 @@
 // simulator.h
 // Lets Arduino RadioHead sketches run within a simulator on Linux as a single process
 // Copyright (C) 2014 Mike McCauley
-// $Id: simulator.h,v 1.2 2014/05/09 05:30:13 mikem Exp mikem $
+// $Id: simulator.h,v 1.4 2015/08/13 02:45:47 mikem Exp mikem $
 
 #ifndef simulator_h
 #define simulator_h
@@ -24,7 +24,8 @@ extern unsigned long millis();
 extern long random(long to);
 extern long random(long from, long to);
 
-// Equavalent to HaardwareSerial in Arduino
+// Equavalent to HardwareSerial in Arduino
+// but outputs to stdout
 class SerialSimulator
 {
 public:
@@ -39,29 +40,31 @@ public:
     size_t println(const char* s)
     {
 	print(s);
-	printf("\n");
+	return printf("\n");
     }
     size_t print(const char* s)
     {
-	printf(s);
+	return printf("%s", s); // This style prevent warnings from [-Wformat-security]
     }
     size_t print(unsigned int n, int base = DEC)
     {
 	if (base == DEC)
-	    printf("%d", n);
+	    return printf("%d", n);
 	else if (base == HEX)
-	    printf("%02x", n);
+	    return printf("%02x", n);
 	else if (base == OCT)
-	    printf("%o", n);
+	    return printf("%o", n);
 	// TODO: BIN
+	else
+	    return 0;
     }
     size_t print(char ch)
     {
-        printf("%c", ch);
+        return printf("%c", ch);
     }
     size_t println(char ch)
     {
-        printf("%c\n", ch);
+        return printf("%c\n", ch);
     }
     size_t print(unsigned char ch, int base = DEC)
     {
@@ -70,7 +73,7 @@ public:
     size_t println(unsigned char ch, int base = DEC)
     {
 	print((unsigned int)ch, base);
-	printf("\n");
+	return printf("\n");
     }
 
 };
