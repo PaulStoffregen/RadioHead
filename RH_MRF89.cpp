@@ -286,10 +286,12 @@ uint8_t RH_MRF89::spiWriteData(const uint8_t* data, uint8_t len)
 
     uint8_t status = 0;
     ATOMIC_BLOCK_START;
+    _spi.beginTransaction();
     digitalWrite(_slaveSelectPin, LOW);
     while (len--)
 	_spi.transfer(*data++);
     digitalWrite(_slaveSelectPin, HIGH);
+    _spi.endTransaction();
     ATOMIC_BLOCK_END;
     return status;
 

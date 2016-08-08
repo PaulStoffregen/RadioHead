@@ -27,21 +27,16 @@ bool RHNRFSPIDriver::init()
     return true;
 }
 
-// Ugly hack for testing SPI.beginTransaction...
-//#if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined(SPI_HAS_TRANSACTION)
-//#undef ATOMIC_BLOCK_START
-//#undef ATOMIC_BLOCK_END
-//#define ATOMIC_BLOCK_START SPI.beginTransaction(_spi._settings)
-//#define ATOMIC_BLOCK_END   SPI.endTransaction()
-//#endif
 // Low level commands for interfacing with the device
 uint8_t RHNRFSPIDriver::spiCommand(uint8_t command)
 {
     uint8_t status;
     ATOMIC_BLOCK_START;
+    _spi.beginTransaction();
     digitalWrite(_slaveSelectPin, LOW);
     status = _spi.transfer(command);
     digitalWrite(_slaveSelectPin, HIGH);
+    _spi.endTransaction();
     ATOMIC_BLOCK_END;
     return status;
 }
@@ -50,10 +45,12 @@ uint8_t RHNRFSPIDriver::spiRead(uint8_t reg)
 {
     uint8_t val;
     ATOMIC_BLOCK_START;
+    _spi.beginTransaction();
     digitalWrite(_slaveSelectPin, LOW);
     _spi.transfer(reg); // Send the address, discard the status
     val = _spi.transfer(0); // The written value is ignored, reg value is read
     digitalWrite(_slaveSelectPin, HIGH);
+    _spi.endTransaction();
     ATOMIC_BLOCK_END;
     return val;
 }
@@ -62,6 +59,7 @@ uint8_t RHNRFSPIDriver::spiWrite(uint8_t reg, uint8_t val)
 {
     uint8_t status = 0;
     ATOMIC_BLOCK_START;
+    _spi.beginTransaction();
     digitalWrite(_slaveSelectPin, LOW);
     status = _spi.transfer(reg); // Send the address
     _spi.transfer(val); // New value follows
@@ -72,6 +70,7 @@ uint8_t RHNRFSPIDriver::spiWrite(uint8_t reg, uint8_t val)
 delayMicroseconds(5);
 #endif
     digitalWrite(_slaveSelectPin, HIGH);
+    _spi.endTransaction();
     ATOMIC_BLOCK_END;
     return status;
 }
@@ -80,11 +79,13 @@ uint8_t RHNRFSPIDriver::spiBurstRead(uint8_t reg, uint8_t* dest, uint8_t len)
 {
     uint8_t status = 0;
     ATOMIC_BLOCK_START;
+    _spi.beginTransaction();
     digitalWrite(_slaveSelectPin, LOW);
     status = _spi.transfer(reg); // Send the start address
     while (len--)
 	*dest++ = _spi.transfer(0);
     digitalWrite(_slaveSelectPin, HIGH);
+    _spi.endTransaction();
     ATOMIC_BLOCK_END;
     return status;
 }
@@ -93,11 +94,13 @@ uint8_t RHNRFSPIDriver::spiBurstWrite(uint8_t reg, const uint8_t* src, uint8_t l
 {
     uint8_t status = 0;
     ATOMIC_BLOCK_START;
+    _spi.beginTransaction();
     digitalWrite(_slaveSelectPin, LOW);
     status = _spi.transfer(reg); // Send the start address
     while (len--)
 	_spi.transfer(*src++);
     digitalWrite(_slaveSelectPin, HIGH);
+    _spi.endTransaction();
     ATOMIC_BLOCK_END;
     return status;
 }

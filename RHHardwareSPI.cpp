@@ -83,6 +83,25 @@ void RHHardwareSPI::begin()
 
     SPI.setDataMode(dataMode);
 #endif
+#if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined(SPI_HAS_TRANSACTION)
+    uint32_t frequency32;
+    if (_frequency == Frequency16MHz) {
+        frequency32 = 16000000;
+    } else if (_frequency == Frequency8MHz) {
+        frequency32 = 8000000;
+    } else if (_frequency == Frequency4MHz) {
+        frequency32 = 4000000;
+    } else if (_frequency == Frequency2MHz) {
+        frequency32 = 2000000;
+    } else {
+        frequency32 = 1000000;
+    }
+    _settings = SPISettings(frequency32, 
+        (_bitOrder == BitOrderLSBFirst) ? LSBFIRST : MSBFIRST, 
+        dataMode);
+    //Serial.print("SPISettings: "); Serial.println(frequency32, DEC); 
+#endif
+    
 
 #if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined (__arm__) && (defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_SAMD))
     // Arduino Due in 1.5.5 has its own BitOrder :-(
@@ -375,6 +394,19 @@ void RHHardwareSPI::end()
 {
     return SPI.end();
 }
+
+// If our platform is arduino and we support transactions then lets use the begin/end transaction
+#if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined(SPI_HAS_TRANSACTION)
+void RHHardwareSPI::beginTransaction()
+{
+  SPI.beginTransaction(_settings);
+}
+
+void RHHardwareSPI::endTransaction() 
+{
+  SPI.endTransaction();
+}
+ #endif
 
 #endif
 

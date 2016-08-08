@@ -36,7 +36,7 @@ bool RH_RF95::init()
 {
     if (!RHSPIDriver::init())
 	return false;
-
+    //Serial.println("RHSPIDriver::init completed");
     // Determine the interrupt number that corresponds to the interruptPin
     int interruptNumber = digitalPinToInterrupt(_interruptPin);
     if (interruptNumber == NOT_AN_INTERRUPT)
@@ -44,6 +44,7 @@ bool RH_RF95::init()
 #ifdef RH_ATTACHINTERRUPT_TAKES_PIN_NUMBER
     interruptNumber = _interruptPin;
 #endif
+    //Serial.println("Attach Interrupt completed");
 
     // No way to check the device type :-(
     
@@ -53,8 +54,8 @@ bool RH_RF95::init()
     // Check we are in sleep mode, with LORA set
     if (spiRead(RH_RF95_REG_01_OP_MODE) != (RH_RF95_MODE_SLEEP | RH_RF95_LONG_RANGE_MODE))
     {
-//	Serial.println(spiRead(RH_RF95_REG_01_OP_MODE), HEX);
-	return false; // No device present?
+	   //Serial.println(spiRead(RH_RF95_REG_01_OP_MODE), HEX);
+	   return false; // No device present?
     }
 
     // Add by Adrien van den Bossche <vandenbo@univ-tlse2.fr> for Teensy
@@ -83,8 +84,11 @@ bool RH_RF95::init()
 	attachInterrupt(interruptNumber, isr1, RISING);
     else if (_myInterruptIndex == 2)
 	attachInterrupt(interruptNumber, isr2, RISING);
-    else
-	return false; // Too many devices, not enough interrupt vectors
+    else 
+    {
+        //Serial.println("Interrupt vector too many vectors");
+        return false; // Too many devices, not enough interrupt vectors
+    }
 
     // Set up FIFO
     // We configure so that we can use the entire 256 byte FIFO for either receive
@@ -121,6 +125,7 @@ bool RH_RF95::init()
 void RH_RF95::handleInterrupt()
 {
     // Read the interrupt register
+    //Serial.println("HandleInterrupt");
     uint8_t irq_flags = spiRead(RH_RF95_REG_12_IRQ_FLAGS);
     if (_mode == RHModeRx && irq_flags & (RH_RF95_RX_TIMEOUT | RH_RF95_PAYLOAD_CRC_ERROR))
     {
@@ -179,8 +184,9 @@ void RH_RF95::isr2()
 void RH_RF95::validateRxBuf()
 {
     if (_bufLen < 4)
-	return; // Too short to be a real message
+	   return; // Too short to be a real message
     // Extract the 4 headers
+    //Serial.println("validateRxBuf >= 4");
     _rxHeaderTo    = _buf[0];
     _rxHeaderFrom  = _buf[1];
     _rxHeaderId    = _buf[2];
@@ -306,9 +312,10 @@ void RH_RF95::setModeRx()
 {
     if (_mode != RHModeRx)
     {
-	spiWrite(RH_RF95_REG_01_OP_MODE, RH_RF95_MODE_RXCONTINUOUS);
-	spiWrite(RH_RF95_REG_40_DIO_MAPPING1, 0x00); // Interrupt on RxDone
-	_mode = RHModeRx;
+       //Serial.println("SetModeRx");
+	   spiWrite(RH_RF95_REG_01_OP_MODE, RH_RF95_MODE_RXCONTINUOUS);
+	   spiWrite(RH_RF95_REG_40_DIO_MAPPING1, 0x00); // Interrupt on RxDone
+	   _mode = RHModeRx;
     }
 }
 

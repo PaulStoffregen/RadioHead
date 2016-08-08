@@ -227,30 +227,32 @@ void RH_RF69::handleInterrupt()
 void RH_RF69::readFifo()
 {
     ATOMIC_BLOCK_START;
+    _spi.beginTransaction();
     digitalWrite(_slaveSelectPin, LOW);
     _spi.transfer(RH_RF69_REG_00_FIFO); // Send the start address with the write mask off
     uint8_t payloadlen = _spi.transfer(0); // First byte is payload len (counting the headers)
     if (payloadlen <= RH_RF69_MAX_ENCRYPTABLE_PAYLOAD_LEN &&
 	payloadlen >= RH_RF69_HEADER_LEN)
     {
-	_rxHeaderTo = _spi.transfer(0);
-	// Check addressing
-	if (_promiscuous ||
-	    _rxHeaderTo == _thisAddress ||
-	    _rxHeaderTo == RH_BROADCAST_ADDRESS)
-	{
-	    // Get the rest of the headers
-	    _rxHeaderFrom  = _spi.transfer(0);
-	    _rxHeaderId    = _spi.transfer(0);
-	    _rxHeaderFlags = _spi.transfer(0);
-	    // And now the real payload
-	    for (_bufLen = 0; _bufLen < (payloadlen - RH_RF69_HEADER_LEN); _bufLen++)
-		_buf[_bufLen] = _spi.transfer(0);
-	    _rxGood++;
-	    _rxBufValid = true;
-	}
+    	_rxHeaderTo = _spi.transfer(0);
+    	// Check addressing
+    	if (_promiscuous ||
+    	    _rxHeaderTo == _thisAddress ||
+    	    _rxHeaderTo == RH_BROADCAST_ADDRESS)
+    	{
+    	    // Get the rest of the headers
+    	    _rxHeaderFrom  = _spi.transfer(0);
+    	    _rxHeaderId    = _spi.transfer(0);
+    	    _rxHeaderFlags = _spi.transfer(0);
+    	    // And now the real payload
+    	    for (_bufLen = 0; _bufLen < (payloadlen - RH_RF69_HEADER_LEN); _bufLen++)
+    		_buf[_bufLen] = _spi.transfer(0);
+    	    _rxGood++;
+    	    _rxBufValid = true;
+    	}
     }
     digitalWrite(_slaveSelectPin, HIGH);
+    _spi.endTransaction();
     ATOMIC_BLOCK_END;
     // Any junk remaining in the FIFO will be cleared next time we go to receive mode.
 }
@@ -500,6 +502,7 @@ bool RH_RF69::send(const uint8_t* data, uint8_t len)
     setModeIdle(); // Prevent RX while filling the fifo
 
     ATOMIC_BLOCK_START;
+    _spi.beginTransaction();
     digitalWrite(_slaveSelectPin, LOW);
     _spi.transfer(RH_RF69_REG_00_FIFO | RH_RF69_SPI_WRITE_MASK); // Send the start address with the write mask on
     _spi.transfer(len + RH_RF69_HEADER_LEN); // Include length of headers
@@ -512,6 +515,7 @@ bool RH_RF69::send(const uint8_t* data, uint8_t len)
     while (len--)
 	_spi.transfer(*data++);
     digitalWrite(_slaveSelectPin, HIGH);
+    _spi.endTransaction();
     ATOMIC_BLOCK_END;
 
     setModeTx(); // Start the transmitter

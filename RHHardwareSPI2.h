@@ -4,8 +4,9 @@
 // Contributed by Joanna Rutkowska
 // $Id: RHHardwareSPI.h,v 1.9 2014/08/12 00:54:52 mikem Exp $
 
-#ifndef RHHardwareSPI_h
-#define RHHardwareSPI_h
+#ifndef RHHardwareSPI2_h
+#define RHHardwareSPI2_h
+#if defined(__arm__) && defined(TEENSYDUINO) && (defined(__MK64FX512__) || defined(__MK66FX1M0__) )
 
 #include <RHGenericSPI.h>
 
@@ -15,7 +16,7 @@
 ///
 /// This concrete subclass of GenericSPIClass encapsulates the standard Arduino hardware and other
 /// hardware SPI interfaces.
-class RHHardwareSPI : public RHGenericSPI
+class RHHardwareSPI2 : public RHGenericSPI
 {
 #ifdef RH_HAVE_HARDWARE_SPI
 public:
@@ -27,7 +28,7 @@ public:
     /// \param[in] bitOrder Select the SPI bus bit order, one of RHGenericSPI::BitOrderMSBFirst or 
     /// RHGenericSPI::BitOrderLSBFirst.
     /// \param[in] dataMode Selects the SPI bus data mode. One of RHGenericSPI::DataMode
-    RHHardwareSPI(Frequency frequency = Frequency1MHz, BitOrder bitOrder = BitOrderMSBFirst, DataMode dataMode = DataMode0);
+    RHHardwareSPI2(Frequency frequency = Frequency1MHz, BitOrder bitOrder = BitOrderMSBFirst, DataMode dataMode = DataMode0);
 
     /// Transfer a single octet to and from the SPI interface
     /// \param[in] data The octet to send
@@ -68,6 +69,8 @@ public:
 };
 
 // Built in default instance
-extern RHHardwareSPI hardware_spi;
-
+extern RHHardwareSPI2 hardware_spi2;
+#else
+#error ("RadioHead SPI2 only supported on Teensy 3.5, 3.6")
+#endif
 #endif
