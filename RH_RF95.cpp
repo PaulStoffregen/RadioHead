@@ -313,9 +313,9 @@ void RH_RF95::setModeRx()
     if (_mode != RHModeRx)
     {
        //Serial.println("SetModeRx");
+       _mode = RHModeRx;
 	   spiWrite(RH_RF95_REG_01_OP_MODE, RH_RF95_MODE_RXCONTINUOUS);
 	   spiWrite(RH_RF95_REG_40_DIO_MAPPING1, 0x00); // Interrupt on RxDone
-	   _mode = RHModeRx;
     }
 }
 
@@ -323,9 +323,9 @@ void RH_RF95::setModeTx()
 {
     if (_mode != RHModeTx)
     {
+    _mode = RHModeTx;       // set first to avoid possible race condition
 	spiWrite(RH_RF95_REG_01_OP_MODE, RH_RF95_MODE_TX);
 	spiWrite(RH_RF95_REG_40_DIO_MAPPING1, 0x40); // Interrupt on TxDone
-	_mode = RHModeTx;
     }
 }
 
