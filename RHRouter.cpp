@@ -9,7 +9,7 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
-// $Id: RHRouter.cpp,v 1.4 2014/04/28 23:07:14 mikem Exp $
+// $Id: RHRouter.cpp,v 1.7 2015/08/13 02:45:47 mikem Exp $
 
 #include <RHRouter.h>
 
@@ -151,14 +151,14 @@ void RHRouter::clearRoutingTable()
 }
 
 
-uint8_t RHRouter::sendtoWait(uint8_t* buf, uint8_t len, uint8_t dest)
+uint8_t RHRouter::sendtoWait(uint8_t* buf, uint8_t len, uint8_t dest, uint8_t flags)
 {
-    return sendtoWait(buf, len, dest, _thisAddress);
+    return sendtoFromSourceWait(buf, len, dest, _thisAddress, flags);
 }
 
 ////////////////////////////////////////////////////////////////////
 // Waits for delivery to the next hop (but not for delivery to the final destination)
-uint8_t RHRouter::sendtoWait(uint8_t* buf, uint8_t len, uint8_t dest, uint8_t source)
+uint8_t RHRouter::sendtoFromSourceWait(uint8_t* buf, uint8_t len, uint8_t dest, uint8_t source, uint8_t flags)
 {
     if (((uint16_t)len + sizeof(RoutedMessageHeader)) > _driver.maxMessageLength())
 	return RH_ROUTER_ERROR_INVALID_LENGTH;
@@ -168,7 +168,7 @@ uint8_t RHRouter::sendtoWait(uint8_t* buf, uint8_t len, uint8_t dest, uint8_t so
     _tmpMessage.header.dest = dest;
     _tmpMessage.header.hops = 0;
     _tmpMessage.header.id = _lastE2ESequenceNumber++;
-    _tmpMessage.header.flags = 0;
+    _tmpMessage.header.flags = flags;
     memcpy(_tmpMessage.data, buf, len);
 
     return route(&_tmpMessage, sizeof(RoutedMessageHeader)+len);
@@ -215,34 +215,34 @@ bool RHRouter::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t*
 #ifdef RH_TEST_NETWORK
 	if (
 #if RH_TEST_NETWORK==1
-	// This looks like 1-2-3-4
+	    // This network looks like 1-2-3-4
 	       (_thisAddress == 1 && _from == 2)
 	    || (_thisAddress == 2 && (_from == 1 || _from == 3))
 	    || (_thisAddress == 3 && (_from == 2 || _from == 4))
 	    || (_thisAddress == 4 && _from == 3)
 	    
 #elif RH_TEST_NETWORK==2
-	       // This looks like 1-2-4
-	       //                 | | |
-	       //                 --3--
+	       // This network looks like 1-2-4
+	       //                         | | |
+	       //                         --3--
 	       (_thisAddress == 1 && (_from == 2 || _from == 3))
 	    ||  _thisAddress == 2
 	    ||  _thisAddress == 3
 	    || (_thisAddress == 4 && (_from == 2 || _from == 3))
 
 #elif RH_TEST_NETWORK==3
-	       // This looks like 1-2-4
-	       //                 |   |
-	       //                 --3--
+	       // This network looks like 1-2-4
+	       //                         |   |
+	       //                         --3--
 	       (_thisAddress == 1 && (_from == 2 || _from == 3))
 	    || (_thisAddress == 2 && (_from == 1 || _from == 4))
 	    || (_thisAddress == 3 && (_from == 1 || _from == 4))
 	    || (_thisAddress == 4 && (_from == 2 || _from == 3))
 
 #elif RH_TEST_NETWORK==4
-	       // This looks like 1-2-3
-	       //                   |
-	       //                   4
+	       // This network looks like 1-2-3
+	       //                           |
+	       //                           4
 	       (_thisAddress == 1 && _from == 2)
 	    ||  _thisAddress == 2
 	    || (_thisAddress == 3 && _from == 2)
@@ -291,10 +291,14 @@ bool RHRouter::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t*
 bool RHRouter::recvfromAckTimeout(uint8_t* buf, uint8_t* len, uint16_t timeout, uint8_t* source, uint8_t* dest, uint8_t* id, uint8_t* flags)
 {  
     unsigned long starttime = millis();
-    while ((millis() - starttime) < timeout)
+    int32_t timeLeft;
+    while ((timeLeft = timeout - (millis() - starttime)) > 0)
     {
-	if (recvfromAck(buf, len, source, dest, id, flags))
-	    return true;
+	if (waitAvailableTimeout(timeLeft))
+	{
+	    if (recvfromAck(buf, len, source, dest, id, flags))
+		return true;
+	}
 	YIELD;
     }
     return false;

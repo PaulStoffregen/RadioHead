@@ -14,6 +14,7 @@
 
 // Singleton instance of the radio driver
 RH_ASK driver;
+// RH_ASK driver(2000, 2, 4, 5); // ESP8266: do not use pin 11
 
 // Class to manage message delivery and receipt, using the driver declared above
 RHReliableDatagram manager(driver, CLIENT_ADDRESS);

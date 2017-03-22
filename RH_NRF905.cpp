@@ -1,7 +1,7 @@
 // RH_NRF905.cpp
 //
 // Copyright (C) 2012 Mike McCauley
-// $Id: RH_NRF905.cpp,v 1.2 2014/05/03 00:20:36 mikem Exp $
+// $Id: RH_NRF905.cpp,v 1.6 2015/12/11 01:10:24 mikem Exp $
 
 #include <RH_NRF905.h>
 
@@ -100,7 +100,10 @@ bool RH_NRF905::setNetworkAddress(uint8_t* address, uint8_t len)
 bool RH_NRF905::setRF(TransmitPower power)
 {
     // Enum definitions of power are the same numerical values as the register
-    spiWriteRegister(RH_NRF905_CONFIG_1_PA_PWR, power);
+    uint8_t reg1 = spiReadRegister(RH_NRF905_CONFIG_1);
+    reg1 &= ~RH_NRF905_CONFIG_1_PA_PWR;
+    reg1 |= ((power & 0x3) << 2) & RH_NRF905_CONFIG_1_PA_PWR;
+    spiWriteRegister(RH_NRF905_CONFIG_1, reg1);
     return true;
 }
 
@@ -172,17 +175,24 @@ bool RH_NRF905::isSending()
     return !(statusRead() & RH_NRF905_STATUS_DR);
 }
 
+bool RH_NRF905::printRegister(uint8_t reg)
+{
+#ifdef RH_HAVE_SERIAL
+    Serial.print(reg, HEX);
+    Serial.print(": ");
+    Serial.println(spiReadRegister(reg), HEX);
+#endif
+
+    return true;
+}
+
 bool RH_NRF905::printRegisters()
 {
     uint8_t registers[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09};
 
     uint8_t i;
     for (i = 0; i < sizeof(registers); i++)
-    {
-	Serial.print(i, HEX);
-	Serial.print(": ");
-	Serial.println(spiReadRegister(registers[i]), HEX);
-    }
+	printRegister(registers[i]);
     return true;
 }
 
@@ -213,6 +223,8 @@ bool RH_NRF905::available()
 {
     if (!_rxBufValid)
     {
+	if (_mode == RHModeTx)
+	    return false;
 	setModeRx();
 	if (!(statusRead() & RH_NRF905_STATUS_DR))
 	    return false;
@@ -222,6 +234,7 @@ bool RH_NRF905::available()
 	validateRxBuf(); 
 	if (_rxBufValid)
 	    setModeIdle(); // Got one
+
     }
     return _rxBufValid;
 }

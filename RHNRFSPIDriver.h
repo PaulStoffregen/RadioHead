@@ -1,7 +1,7 @@
 // RHNRFSPIDriver.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-// $Id: RHNRFSPIDriver.h,v 1.1 2014/04/23 06:00:59 mikem Exp $
+// $Id: RHNRFSPIDriver.h,v 1.3 2015/12/16 04:55:33 mikem Exp $
 
 #ifndef RHNRFSPIDriver_h
 #define RHNRFSPIDriver_h
@@ -34,7 +34,7 @@ class RHNRFSPIDriver : public RHGenericDriver
 {
 public:
     /// Constructor
-    /// \param[in] slaveSelectPin The controler pin to use to select the desired SPI device. This pin will be driven LOW
+    /// \param[in] slaveSelectPin The controller pin to use to select the desired SPI device. This pin will be driven LOW
     /// during SPI communications with the SPI device that uis iused by this Driver.
     /// \param[in] spi Reference to the SPI interface to use. The default is to use a default built-in Hardware interface.
     RHNRFSPIDriver(uint8_t slaveSelectPin = SS, RHGenericSPI& spi = hardware_spi);
@@ -78,11 +78,17 @@ public:
     ///  it may or may not be meaningfule depending on the the type of device being accessed.
     uint8_t           spiBurstWrite(uint8_t reg, const uint8_t* src, uint8_t len);
 
+    /// Set or change the pin to be used for SPI slave select.
+    /// This can be called at any time to change the
+    /// pin that will be used for slave select in subsquent SPI operations.
+    /// \param[in] slaveSelectPin The pin to use
+    void setSlaveSelectPin(uint8_t slaveSelectPin);
+
 protected:
     /// Reference to the RHGenericSPI instance to use to trasnfer data with teh SPI device
     RHGenericSPI&       _spi;
 
-    /// The pin number of the Slave Selct pin that is used to select the desired device.
+    /// The pin number of the Slave Select pin that is used to select the desired device.
     uint8_t             _slaveSelectPin;
 };
 

@@ -1,7 +1,7 @@
 // RH_RF22.cpp
 //
 // Copyright (C) 2011 Mike McCauley
-// $Id: RH_RF22.cpp,v 1.17 2014/05/30 19:30:54 mikem Exp $
+// $Id: RH_RF22.cpp,v 1.26 2016/04/04 01:40:12 mikem Exp $
 
 #include <RH_RF22.h>
 
@@ -63,6 +63,12 @@ RH_RF22::RH_RF22(uint8_t slaveSelectPin, uint8_t interruptPin, RHGenericSPI& spi
     _interruptPin = interruptPin;
     _idleMode = RH_RF22_XTON; // Default idle state is READY mode
     _polynomial = CRC_16_IBM; // Historical
+    _myInterruptIndex = 0xff; // Not allocated yet
+}
+
+void RH_RF22::setIdleMode(uint8_t idleMode)
+{
+    _idleMode = idleMode;
 }
 
 bool RH_RF22::init()
@@ -74,6 +80,9 @@ bool RH_RF22::init()
     int interruptNumber = digitalPinToInterrupt(_interruptPin);
     if (interruptNumber == NOT_AN_INTERRUPT)
 	return false;
+#ifdef RH_ATTACHINTERRUPT_TAKES_PIN_NUMBER
+    interruptNumber = _interruptPin;
+#endif
 
     // Software reset the device
     reset();
@@ -103,25 +112,29 @@ bool RH_RF22::init()
     // On some devices, notably most Arduinos, the interrupt pin passed in is actually the 
     // interrupt number. You have to figure out the interruptnumber-to-interruptpin mapping
     // yourself based on knowledge of what Arduino board you are running on.
-    _deviceForInterrupt[_interruptCount] = this;
-    if (_interruptCount == 0)
+    if (_myInterruptIndex == 0xff)
+    {
+	// First run, no interrupt allocated yet
+	if (_interruptCount <= RH_RF22_NUM_INTERRUPTS)
+	    _myInterruptIndex = _interruptCount++;
+	else
+	    return false; // Too many devices, not enough interrupt vectors
+    }
+    _deviceForInterrupt[_myInterruptIndex] = this;
+    if (_myInterruptIndex == 0)
 	attachInterrupt(interruptNumber, isr0, FALLING);
-    else if (_interruptCount == 1)
+    else if (_myInterruptIndex == 1)
 	attachInterrupt(interruptNumber, isr1, FALLING);
-    else if (_interruptCount == 2)
+    else if (_myInterruptIndex == 2)
 	attachInterrupt(interruptNumber, isr2, FALLING);
     else
 	return false; // Too many devices, not enough interrupt vectors
-    #if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined(SPI_HAS_TRANSACTION)
-    SPI.usingInterrupt(interruptNumber);
-    #endif
-    _interruptCount++;
 
     setModeIdle();
 
     clearTxBuf();
     clearRxBuf();
-  
+
     // Most of these are the POR default
     spiWrite(RH_RF22_REG_7D_TX_FIFO_CONTROL2, RH_RF22_TXFFAEM_THRESHOLD);
     spiWrite(RH_RF22_REG_7E_RX_FIFO_CONTROL,  RH_RF22_RXFFAFULL_THRESHOLD);
@@ -170,6 +183,7 @@ void RH_RF22::handleInterrupt()
     spiBurstRead(RH_RF22_REG_03_INTERRUPT_STATUS1, _lastInterruptFlags, 2);
 
 #if 0
+    // DEVELOPER TESTING ONLY
     // Caution: Serial printing in this interrupt routine can cause mysterious crashes
     Serial.print("interrupt ");
     Serial.print(_lastInterruptFlags[0], HEX);
@@ -180,6 +194,7 @@ void RH_RF22::handleInterrupt()
 #endif
 
 #if 0
+    // DEVELOPER TESTING ONLY
     // TESTING: fake an RH_RF22_IFFERROR
     static int counter = 0;
     if (_lastInterruptFlags[0] & RH_RF22_IPKSENT && counter++ == 10)
@@ -202,7 +217,7 @@ void RH_RF22::handleInterrupt()
     if (_lastInterruptFlags[0] & RH_RF22_ITXFFAEM)
     {
 	// See if more data has to be loaded into the Tx FIFO 
-	sendNextFragment();
+  	sendNextFragment();
 //	Serial.println("ITXFFAEM");  
     }
     if (_lastInterruptFlags[0] & RH_RF22_IRXFFAFULL)
@@ -432,6 +447,16 @@ void RH_RF22::setModeIdle()
     }
 }
 
+bool RH_RF22::sleep()
+{
+    if (_mode != RHModeSleep)
+    {
+	setOpMode(0);
+	_mode = RHModeSleep;
+    }
+    return true;
+}
+
 void RH_RF22::setModeRx()
 {
     if (_mode != RHModeRx)
@@ -508,7 +533,11 @@ void RH_RF22::clearRxBuf()
 bool RH_RF22::available()
 {
     if (!_rxBufValid)
+    {
+	if (_mode == RHModeTx)
+	    return false;
 	setModeRx(); // Make sure we are receiving
+    }
     return _rxBufValid;
 }
 
@@ -632,6 +661,7 @@ void RH_RF22::resetRxFifo()
 {
     spiWrite(RH_RF22_REG_08_OPERATING_MODE2, RH_RF22_FFCLRRX);
     spiWrite(RH_RF22_REG_08_OPERATING_MODE2, 0);
+    _rxBufValid = false;
 }
 
 // CLear the TX FIFO

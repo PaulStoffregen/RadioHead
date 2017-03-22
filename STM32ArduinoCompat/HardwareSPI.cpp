@@ -3,6 +3,9 @@
 // Interface between Arduino-like SPI interface and STM32F4 Discovery and similar
 // using STM32F4xx_DSP_StdPeriph_Lib_V1.3.0
 
+#include <RadioHead.h>
+#if (RH_PLATFORM == RH_PLATFORM_STM32STD)
+
 #include <wirish.h>
 #include <HardwareSPI.h>
 #include "stm32f4xx.h"
@@ -174,3 +177,5 @@ uint8_t HardwareSPI::transfer(uint8_t data)
 	;
     return SPI_ReceiveData(SPIx);
 }
+
+#endif

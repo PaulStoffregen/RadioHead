@@ -2,7 +2,7 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
-// $Id: RHRouter.h,v 1.6 2014/05/22 06:07:09 mikem Exp $
+// $Id: RHRouter.h,v 1.9 2014/08/10 20:55:17 mikem Exp $
 
 #ifndef RHRouter_h
 #define RHRouter_h
@@ -96,7 +96,7 @@
 ///
 /// \par Message Format
 ///
-/// RHRouter add to the lower level RHReliableDatagram (and even lower level RH) class mesage formats. 
+/// RHRouter add to the lower level RHReliableDatagram (and even lower level RH) class message formats. 
 /// In those lower level classes, the hop-to-hop message headers are in the RH message headers, 
 /// and are handled automcatically by tyhe RH hardware.
 /// RHRouter and its subclasses add an end-to-end addressing header in the payload of the RH message, 
@@ -221,27 +221,31 @@ public:
     /// \param [in] buf The application message data
     /// \param [in] len Number of octets in the application message data. 0 is permitted
     /// \param [in] dest The destination node address
+    /// \param [in] flags Optional flags for use by subclasses or application layer, 
+    ///             delivered end-to-end to the dest address. The receiver can recover the flags with recvFromAck().
     /// \return The result code:
     ///         - RH_ROUTER_ERROR_NONE Message was routed and delivered to the next hop 
     ///           (not necessarily to the final dest address)
     ///         - RH_ROUTER_ERROR_NO_ROUTE There was no route for dest in the local routing table
     ///         - RH_ROUTER_ERROR_UNABLE_TO_DELIVER Not able to deliver to the next hop 
     ///           (usually because it dod not acknowledge due to being off the air or out of range
-    uint8_t sendtoWait(uint8_t* buf, uint8_t len, uint8_t dest);
+    uint8_t sendtoWait(uint8_t* buf, uint8_t len, uint8_t dest, uint8_t flags = 0);
 
     /// Similar to sendtoWait() above, but spoofs the source address.
     /// For internal use only during routing
-    /// \param [in] buf The application message data
-    /// \param [in] len Number of octets in the application message data. 0 is permitted
-    /// \param [in] dest The destination node address
-    /// \param [in] source The (fake) originatong node address.
+    /// \param [in] buf The application message data.
+    /// \param [in] len Number of octets in the application message data. 0 is permitted.
+    /// \param [in] dest The destination node address.
+    /// \param [in] source The (fake) originating node address.
+    /// \param [in] flags Optional flags for use by subclasses or application layer, 
+    ///             delivered end-to-end to the dest address. The receiver can recover the flags with recvFromAck().
     /// \return The result code:
     ///         - RH_ROUTER_ERROR_NONE Message was routed and deliverd to the next hop 
     ///           (not necessarily to the final dest address)
     ///         - RH_ROUTER_ERROR_NO_ROUTE There was no route for dest in the local routing table
     ///         - RH_ROUTER_ERROR_UNABLE_TO_DELIVER Noyt able to deliver to the next hop 
     ///           (usually because it dod not acknowledge due to being off the air or out of range
-    uint8_t sendtoWait(uint8_t* buf, uint8_t len, uint8_t dest, uint8_t source);
+    uint8_t sendtoFromSourceWait(uint8_t* buf, uint8_t len, uint8_t dest, uint8_t source, uint8_t flags = 0);
 
     /// Starts the receiver if it is not running already.
     /// If there is a valid message available for this node (or RH_BROADCAST_ADDRESS), 
@@ -255,8 +259,6 @@ public:
     /// RH_BROADCAST_ADDRESS. 
     /// This is the preferred function for getting messages addressed to this node.
     /// If the message is not a broadcast, acknowledge to the sender before returning.
-    /// Caution: terminates any transmit that is currently occurring. If you dont want this to happen, 
-    /// use waitPacketSent() first.
     /// \param[in] buf Location to copy the received message
     /// \param[in,out] len Available space in buf. Set to the actual number of octets copied.
     /// \param[in] source If present and not NULL, the referenced uint8_t will be set to the SOURCE address
@@ -270,8 +272,6 @@ public:
     /// Starts the receiver if it is not running already.
     /// Similar to recvfromAck(), this will block until either a valid message available for this node
     /// or the timeout expires. 
-    /// Caution: terminates any transmit that is currently occurring. If you dont want this to happen, 
-    /// use waitPacketSent() first.
     /// \param[in] buf Location to copy the received message
     /// \param[in,out] len Available space in buf. Set to the actual number of octets copied.
     /// \param[in] timeout Maximum time to wait in milliseconds

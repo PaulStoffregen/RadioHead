@@ -6,7 +6,7 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-// $Id: RH_RF95.h,v 1.1 2014/07/01 01:23:58 mikem Exp mikem $
+// $Id: RH_RF95.h,v 1.11 2016/07/07 00:02:53 mikem Exp mikem $
 // 
 
 #ifndef RH_RF95_h
@@ -88,6 +88,14 @@
 #define RH_RF95_REG_41_DIO_MAPPING2                        0x41
 #define RH_RF95_REG_42_VERSION                             0x42
 
+#define RH_RF95_REG_4B_TCXO                                0x4b
+#define RH_RF95_REG_4D_PA_DAC                              0x4d
+#define RH_RF95_REG_5B_FORMER_TEMP                         0x5b
+#define RH_RF95_REG_61_AGC_REF                             0x61
+#define RH_RF95_REG_62_AGC_THRESH1                         0x62
+#define RH_RF95_REG_63_AGC_THRESH2                         0x63
+#define RH_RF95_REG_64_AGC_THRESH3                         0x64
+
 // RH_RF95_REG_01_OP_MODE                             0x01
 #define RH_RF95_LONG_RANGE_MODE                       0x80
 #define RH_RF95_ACCESS_SHARED_REG                     0x40
@@ -103,6 +111,7 @@
 
 // RH_RF95_REG_09_PA_CONFIG                           0x09
 #define RH_RF95_PA_SELECT                             0x80
+#define RH_RF95_MAX_POWER                             0x70
 #define RH_RF95_OUTPUT_POWER                          0x0f
 
 // RH_RF95_REG_0A_PA_RAMP                             0x0a
@@ -196,20 +205,31 @@
 #define RH_RF95_AGC_AUTO_ON                           0x04
 #define RH_RF95_SYM_TIMEOUT_MSB                       0x03
 
+// RH_RF95_REG_4D_PA_DAC                              0x4d
+#define RH_RF95_PA_DAC_DISABLE                        0x04
+#define RH_RF95_PA_DAC_ENABLE                         0x07
+
 /////////////////////////////////////////////////////////////////////
 /// \class RH_RF95 RH_RF95.h <RH_RF95.h>
 /// \brief Driver to send and receive unaddressed, unreliable datagrams via a LoRa 
 /// capable radio transceiver.
 ///
-/// For Semtech SX1276/77/78 and HopeRF RFM95/96/97/98 and other similar LoRa capable radios.
+/// For Semtech SX1276/77/78/79 and HopeRF RF95/96/97/98 and other similar LoRa capable radios.
 /// Based on http://www.hoperf.com/upload/rf/RFM95_96_97_98W.pdf
 /// and http://www.hoperf.cn/upload/rfchip/RF96_97_98.pdf
 /// and http://www.semtech.com/images/datasheet/LoraDesignGuide_STD.pdf
 /// and http://www.semtech.com/images/datasheet/sx1276.pdf
+/// and http://www.semtech.com/images/datasheet/sx1276_77_78_79.pdf
 /// FSK/GFSK/OOK modes are not (yet) supported.
 ///
 /// Works with
 /// - the excellent MiniWirelessLoRa from Anarduino http://www.anarduino.com/miniwireless
+/// - The excellent Modtronix inAir4 http://modtronix.com/inair4.html 
+/// and inAir9 modules http://modtronix.com/inair9.html.
+/// - the excellent Rocket Scream Mini Ultra Pro with the RFM95W 
+///   http://www.rocketscream.com/blog/product/mini-ultra-pro-with-radio/
+/// - Lora1276 module from NiceRF http://www.nicerf.com/product_view.aspx?id=99
+/// - Adafruit Feather M0 with RFM95 
 ///
 /// \par Overview
 ///
@@ -223,9 +243,9 @@
 /// modulation scheme.
 ///
 /// This Driver provides an object-oriented interface for sending and receiving data messages with Hope-RF
-/// RFM95/96/97/98(W) and compatible radio modules in LoRa mode.
+/// RFM95/96/97/98(W), Semtech SX1276/77/78/79 and compatible radio modules in LoRa mode.
 ///
-/// The Hope-RF (http://www.hoperf.com) RFM95/96/97/98(W) is a low-cost ISM transceiver
+/// The Hope-RF (http://www.hoperf.com) RFM95/96/97/98(W) and Semtech SX1276/77/78/79 is a low-cost ISM transceiver
 /// chip. It supports FSK, GFSK, OOK over a wide range of frequencies and
 /// programmable data rates, and it also supports the proprietary LoRA (Long Range) mode, which
 /// is the only mode supported in this RadioHead driver.
@@ -236,14 +256,15 @@
 /// 61Hz precision to any frequency from 240.0MHz to 960.0MHz. Caution: most modules only support a more limited
 /// range of frequencies due to antenna tuning.
 ///
-/// Up to 2 RFM95/96/97/98(W) modules can be connected to an Arduino (3 on a Mega),
+/// Up to 2 modules can be connected to an Arduino (3 on a Mega),
 /// permitting the construction of translators and frequency changers, etc.
 ///
 /// Support for other features such as transmitter power control etc is
 /// also provided.
 ///
 /// Tested on MinWirelessLoRa with arduino-1.0.5
-/// on OpenSuSE 13.1
+/// on OpenSuSE 13.1. 
+/// Also tested with Teensy3.1, Modtronix inAir4 and Arduino 1.6.5 on OpenSuSE 13.1
 ///
 /// \par Packet Format
 ///
@@ -256,13 +277,13 @@
 /// - 0 to 251 octets DATA 
 /// - CRC (handled internally by the radio)
 ///
-/// \par Connecting RFM95/96/97/98 to Arduino
+/// \par Connecting RFM95/96/97/98 and Semtech SX1276/77/78/79 to Arduino
 ///
 /// We tested with Anarduino MiniWirelessLoRA, which is an Arduino Duemilanove compatible with a RFM96W
 /// module on-board. Therefore it needs no connections other than the USB
 /// programming connection and an antenna to make it work.
 ///
-/// If you have a bare RFM95/96/97/98  that you want to connect to an Arduino, you
+/// If you have a bare RFM95/96/97/98 that you want to connect to an Arduino, you
 /// might use these connections (untested): CAUTION: you must use a 3.3V type
 /// Arduino, otherwise you will also need voltage level shifters between the
 /// Arduino and the RFM95.  CAUTION, you must also ensure you connect an
@@ -273,12 +294,11 @@
 ///                 GND----------GND   (ground in)
 ///                 3V3----------3.3V  (3.3V in)
 /// interrupt 0 pin D2-----------DIO0  (interrupt request out)
-///          SS pin D10----------NSS   (chip select in)
+///          SS pin D10----------NSS   (CS chip select in)
 ///         SCK pin D13----------SCK   (SPI clock in)
 ///        MOSI pin D11----------MOSI  (SPI Data in)
 ///        MISO pin D12----------MISO  (SPI Data out)
 /// \endcode
-///
 /// With these connections, you can then use the default constructor RH_RF95().
 /// You can override the default settings for the SS pin and the interrupt in
 /// the RH_RF95 constructor if you wish to connect the slave select SS to other
@@ -286,6 +306,85 @@
 /// for Mega) or the interrupt request to other than pin D2 (Caution,
 /// different processors have different constraints as to the pins available
 /// for interrupts).
+///
+/// You can connect a Modtronix inAir4 or inAir9 directly to a 3.3V part such as a Teensy 3.1 like
+/// this (tested).
+/// \code
+///                 Teensy      inAir4 inAir9
+///                 GND----------GND   (ground in)
+///                 3V3----------3.3V  (3.3V in)
+/// interrupt 0 pin D2-----------D00   (interrupt request out)
+///          SS pin D10----------CS    (CS chip select in)
+///         SCK pin D13----------CK    (SPI clock in)
+///        MOSI pin D11----------SI    (SPI Data in)
+///        MISO pin D12----------SO    (SPI Data out)
+/// \endcode
+/// With these connections, you can then use the default constructor RH_RF95().
+/// you must also set the transmitter power with useRFO:
+/// driver.setTxPower(13, true);
+///
+/// Note that if you are using Modtronix inAir4 or inAir9,or any other module which uses the
+/// transmitter RFO pins and not the PA_BOOST pins
+/// that you must configure the power transmitter power for -1 to 14 dBm and with useRFO true. 
+/// Failure to do that will result in extremely low transmit powers.
+///
+/// If you have an Arduino M0 Pro from arduino.org, 
+/// you should note that you cannot use Pin 2 for the interrupt line 
+/// (Pin 2 is for the NMI only). The same comments apply to Pin 4 on Arduino Zero from arduino.cc.
+/// Instead you can use any other pin (we use Pin 3) and initialise RH_RF69 like this:
+/// \code
+/// // Slave Select is pin 10, interrupt is Pin 3
+/// RH_RF95 driver(10, 3);
+/// \endcode
+///
+/// If you have a Rocket Scream Mini Ultra Pro with the RFM95W:
+/// - Ensure you have Arduino SAMD board support 1.6.5 or later in Arduino IDE 1.6.8 or later.
+/// - The radio SS is hardwired to pin D5 and the DIO0 interrupt to pin D2, 
+/// so you need to initialise the radio like this:
+/// \code
+/// RH_RF95 driver(5, 2);
+/// \endcode
+/// - The name of the serial port on that board is 'SerialUSB', not 'Serial', so this may be helpful at the top of our
+///   sample sketches:
+/// \code
+/// #define Serial SerialUSB
+/// \endcode
+/// - You also need this in setup before radio initialisation  
+/// \code
+/// // Ensure serial flash is not interfering with radio communication on SPI bus
+///  pinMode(4, OUTPUT);
+///  digitalWrite(4, HIGH);
+/// \endcode
+/// - and if you have a 915MHz part, you need this after driver/manager intitalisation:
+/// \code
+/// rf95.setFrequency(915.0);
+/// \endcode
+/// which adds up to modifying sample sketches something like:
+/// \code
+/// #include <SPI.h>
+/// #include <RH_RF95.h>
+/// RH_RF95 rf95(5, 2); // Rocket Scream Mini Ultra Pro with the RFM95W
+/// #define Serial SerialUSB
+/// 
+/// void setup() 
+/// {
+///   // Ensure serial flash is not interfering with radio communication on SPI bus
+///   pinMode(4, OUTPUT);
+///   digitalWrite(4, HIGH);
+/// 
+///   Serial.begin(9600);
+///   while (!Serial) ; // Wait for serial port to be available
+///   if (!rf95.init())
+///     Serial.println("init failed");
+///   rf95.setFrequency(915.0);
+/// }
+/// ...
+/// \endcode
+///
+/// For Adafruit Feather M0 with RFM95, construct the driver like this:
+/// \code
+/// RH_RF95 rf95(8, 3);
+/// \endcode
 ///
 /// It is possible to have 2 or more radios connected to one Arduino, provided
 /// each radio has its own SS and interrupt line (SCK, SDI and SDO are common
@@ -353,10 +452,12 @@
 ///
 /// You can control the transmitter power on the RF transceiver
 /// with the RH_RF95::setTxPower() function. The argument can be any of
-/// +5 to +20
+/// +5 to +23 (for modules that use PA_BOOST)
+/// -1 to +14 (for modules that use RFO transmitter pin)
 /// The default is 13. Eg:
 /// \code
-/// driver.setTxPower(10);
+/// driver.setTxPower(10); // use PA_BOOST transmitter pin
+/// driver.setTxPower(10, true); // use PA_RFO pin transmitter pin
 /// \endcode
 ///
 /// We have made some actual power measurements against
@@ -364,22 +465,48 @@
 /// - MiniWirelessLoRa RFM96W-433Mhz, USB power
 /// - 30cm RG316 soldered direct to RFM96W module ANT and GND
 /// - SMA connector
+/// - 12db attenuator
+/// - SMA connector
 /// - MiniKits AD8307 HF/VHF Power Head (calibrated against Rohde&Schwartz 806.2020 test set)
 /// - Tektronix TDS220 scope to measure the Vout from power head
 /// \code
 /// Program power           Measured Power
 ///    dBm                         dBm
-///      5                           6
-///      7                           9
-///      9                          12
-///     11                          14
-///     13                          16
-///     15                          16
-///     17                          17
-///     19                          19
-///     20                          19 
+///      5                           5
+///      7                           7
+///      9                           8
+///     11                          11
+///     13                          13
+///     15                          15
+///     17                          16
+///     19                          18
+///     20                          20 
+///     21                          21 
+///     22                          22 
+///     23                          23 
 /// \endcode
-/// (Caution: we dont claim laboratory accuracy for these measurements)
+///
+/// We have also measured the actual power output from a Modtronix inAir4 http://modtronix.com/inair4.html
+/// connected to a Teensy 3.1:
+/// Teensy 3.1 this is a 3.3V part, connected directly to:
+/// Modtronix inAir4 with SMA antenna connector, connected as above:
+/// 10cm SMA-SMA cable
+/// - MiniKits AD8307 HF/VHF Power Head (calibrated against Rohde&Schwartz 806.2020 test set)
+/// - Tektronix TDS220 scope to measure the Vout from power head
+/// \code
+/// Program power           Measured Power
+///    dBm                         dBm
+///      -1                         0
+///      1                          2
+///      3                          4
+///      5                          7
+///      7                         10
+///      9                         13
+///     11                         14.2
+///     13                         15
+///     14                         16
+/// \endcode
+/// (Caution: we dont claim laboratory accuracy for these power measurements)
 /// You would not expect to get anywhere near these powers to air with a simple 1/4 wavelength wire antenna.
 class RH_RF95 : public RHSPIDriver
 {
@@ -406,6 +533,8 @@ public:
     /// These are indexes into MODEM_CONFIG_TABLE. We strongly recommend you use these symbolic
     /// definitions and not their integer equivalents: its possible that new values will be
     /// introduced in later versions (though we will try to avoid it).
+    /// Caution: if you are using slow packet rates and long packets with RHReliableDatagram or subclasses
+    /// you may need to change the RHReliableDatagram timeout for reliable operations.
     typedef enum
     {
 	Bw125Cr45Sf128 = 0,	   ///< Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on. Default medium range
@@ -425,6 +554,8 @@ public:
     /// Caution: You must specify an interrupt capable pin.
     /// On many Arduino boards, there are limitations as to which pins may be used as interrupts.
     /// On Leonardo pins 0, 1, 2 or 3. On Mega2560 pins 2, 3, 18, 19, 20, 21. On Due and Teensy, any digital pin.
+    /// On Arduino Zero from arduino.cc, any digital pin other than 4.
+    /// On Arduino M0 Pro from arduino.org, any digital pin other than 2.
     /// On other Arduinos pins 2 or 3. 
     /// See http://arduino.cc/en/Reference/attachInterrupt for more details.
     /// On Chipkit Uno32, pins 38, 2, 7, 8, 35.
@@ -439,7 +570,8 @@ public:
     virtual bool    init();
 
     /// Prints the value of all chip registers
-    /// for debugging purposes
+    /// to the Serial device if RH_HAVE_SERIAL is defined for the current platform
+    /// For debugging purposes only.
     /// \return true on success
     bool printRegisters();
 
@@ -496,8 +628,8 @@ public:
     virtual uint8_t maxMessageLength();
 
     /// Sets the transmitter and receiver 
-    /// centre frequency
-    /// \param[in] centre Frequency in MHz. 137.0 to 1020.0. Caution,RFM95/96/97/98 comes in several
+    /// centre frequency.
+    /// \param[in] centre Frequency in MHz. 137.0 to 1020.0. Caution: RFM95/96/97/98 comes in several
     /// different frequency ranges, and setting a frequency outside that range of your radio will probably not work
     /// \return true if the selected frquency centre is within range
     bool        setFrequency(float centre);
@@ -514,12 +646,33 @@ public:
     /// Starts the transmitter in the RF95/96/97/98.
     void           setModeTx();
 
-    /// Sets the transmitter power output level.
+    /// Sets the transmitter power output level, and configures the transmitter pin.
     /// Be a good neighbour and set the lowest power level you need.
+    /// Some SX1276/77/78/79 and compatible modules (such as RFM95/96/97/98) 
+    /// use the PA_BOOST transmitter pin for high power output (and optionally the PA_DAC)
+    /// while some (such as the Modtronix inAir4 and inAir9) 
+    /// use the RFO transmitter pin for lower power but higher efficiency.
+    /// You must set the appropriate power level and useRFO argument for your module.
+    /// Check with your module manufacturer which transmtter pin is used on your module
+    /// to ensure you are setting useRFO correctly. 
+    /// Failure to do so will result in very low 
+    /// transmitter power output.
     /// Caution: legal power limits may apply in certain countries.
-    /// After init(), the power will be set to 13dBm.
-    /// \param[in] power Transmitter power level in dBm. For RFM95/96/97/98 LORA, valid values are from +5 to +20 
-    void           setTxPower(int8_t power);
+    /// After init(), the power will be set to 13dBm, with useRFO false (ie PA_BOOST enabled).
+    /// \param[in] power Transmitter power level in dBm. For RFM95/96/97/98 LORA with useRFO false, 
+    /// valid values are from +5 to +23.
+    /// For Modtronix inAir4 and inAir9 with useRFO true (ie RFO pins in use), 
+    /// valid values are from -1 to 14.
+    /// \param[in] useRFO If true, enables the use of the RFO transmitter pins instead of
+    /// the PA_BOOST pin (false). Choose the correct setting for your module.
+    void           setTxPower(int8_t power, bool useRFO = false);
+
+    /// Sets the radio into low-power sleep mode.
+    /// If successful, the transport will stay in sleep mode until woken by 
+    /// changing mode it idle, transmit or receive (eg by calling send(), recv(), available() etc)
+    /// Caution: there is a time penalty as the radio takes a finite time to wake from sleep mode.
+    /// \return true if sleep mode was successfully entered.
+    virtual bool    sleep();
 
 protected:
     /// This is a low level function to handle the interrupts for one instance of RH_RF95.
@@ -551,6 +704,10 @@ private:
 
     /// The configured interrupt pin connected to this instance
     uint8_t             _interruptPin;
+
+    /// The index into _deviceForInterrupt[] for this device (if an interrupt is already allocated)
+    /// else 0xff
+    uint8_t             _myInterruptIndex;
 
     /// Number of octets in the buffer
     volatile uint8_t    _bufLen;

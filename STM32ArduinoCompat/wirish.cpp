@@ -3,6 +3,8 @@
 // Arduino-like API for STM32F4 Discovery and similar
 // using STM32F4xx_DSP_StdPeriph_Lib_V1.3.0
 
+#include <RadioHead.h>
+#if (RH_PLATFORM == RH_PLATFORM_STM32STD)
 #include <wirish.h>
 
 SerialUSBClass SerialUSB;
@@ -407,3 +409,5 @@ extern "C"
     void _init() {}
     void _fini() {}
 }
+
+#endif

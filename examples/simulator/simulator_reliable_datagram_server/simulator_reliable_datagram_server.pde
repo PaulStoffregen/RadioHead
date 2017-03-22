@@ -7,7 +7,7 @@
 // Build with
 // cd whatever/RadioHead 
 // tools/simBuild examples/simulator/simulator_reliable_datagram_server/simulator_reliable_datagram_server.pde
-// Run with ./simulator_reliable_datagram_client
+// Run with ./simulator_reliable_datagram_server
 // Make sure you also have the 'Luminiferous Ether' simulator tools/etherSimulator.pl running
 
 #include <RHReliableDatagram.h>
@@ -38,22 +38,22 @@ uint8_t buf[RH_TCP_MAX_MESSAGE_LEN];
 
 void loop()
 {
-  if (manager.available())
+  // Wait for a message addressed to us from the client
+  manager.waitAvailable();
+
+  // Wait for a message addressed to us from the client
+  uint8_t len = sizeof(buf);
+  uint8_t from;
+  if (manager.recvfromAck(buf, &len, &from))
   {
-    // Wait for a message addressed to us from the client
-    uint8_t len = sizeof(buf);
-    uint8_t from;
-    if (manager.recvfromAck(buf, &len, &from))
-    {
       Serial.print("got request from : 0x");
       Serial.print(from, HEX);
       Serial.print(": ");
       Serial.println((char*)buf);
-
+      
       // Send a reply back to the originator client
       if (!manager.sendtoWait(data, sizeof(data), from))
-        Serial.println("sendtoWait failed");
-    }
+	  Serial.println("sendtoWait failed");
   }
 }
 

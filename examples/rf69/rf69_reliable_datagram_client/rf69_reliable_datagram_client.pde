@@ -5,6 +5,7 @@
 // It is designed to work with the other example rf69_reliable_datagram_server
 // Tested on Moteino with RFM69 http://lowpowerlab.com/moteino/
 // Tested on miniWireless with RFM69 www.anarduino.com/miniwireless
+// Tested on Teensy 3.1 with RF69 on PJRC breakout board
 
 #include <RHReliableDatagram.h>
 #include <RH_RF69.h>
@@ -15,6 +16,8 @@
 
 // Singleton instance of the radio driver
 RH_RF69 driver;
+//RH_RF69 driver(15, 16); // For RF69 on PJRC breakout board with Teensy 3.1
+//RH_RF69 rf69(4, 2); // For MoteinoMEGA https://lowpowerlab.com/shop/moteinomega
 
 // Class to manage message delivery and receipt, using the driver declared above
 RHReliableDatagram manager(driver, CLIENT_ADDRESS);

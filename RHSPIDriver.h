@@ -1,7 +1,7 @@
 // RHSPIDriver.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-// $Id: RHSPIDriver.h,v 1.9 2014/04/23 06:00:59 mikem Exp $
+// $Id: RHSPIDriver.h,v 1.10 2015/12/16 04:55:33 mikem Exp $
 
 #ifndef RHSPIDriver_h
 #define RHSPIDriver_h
@@ -77,11 +77,17 @@ public:
     ///  it may or may not be meaningfule depending on the the type of device being accessed.
     uint8_t           spiBurstWrite(uint8_t reg, const uint8_t* src, uint8_t len);
 
+    /// Set or change the pin to be used for SPI slave select.
+    /// This can be called at any time to change the
+    /// pin that will be used for slave select in subsquent SPI operations.
+    /// \param[in] slaveSelectPin The pin to use
+    void setSlaveSelectPin(uint8_t slaveSelectPin);
+
 protected:
-    /// Reference to the RHGenericSPI instance to use to trasnfer data with teh SPI device
+    /// Reference to the RHGenericSPI instance to use to transfer data with teh SPI device
     RHGenericSPI&       _spi;
 
-    /// The pin number of the Slave Selct pin that is used to select the desired device.
+    /// The pin number of the Slave Select pin that is used to select the desired device.
     uint8_t             _slaveSelectPin;
 };
 
