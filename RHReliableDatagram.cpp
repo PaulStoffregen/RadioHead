@@ -9,7 +9,7 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
-// $Id: RHReliableDatagram.cpp,v 1.15 2015/12/11 01:10:24 mikem Exp $
+// $Id: RHReliableDatagram.cpp,v 1.17 2017/03/08 09:30:47 mikem Exp mikem $
 
 #include <RHReliableDatagram.h>
 
@@ -22,6 +22,7 @@ RHReliableDatagram::RHReliableDatagram(RHGenericDriver& driver, uint8_t thisAddr
     _lastSequenceNumber = 0;
     _timeout = RH_DEFAULT_TIMEOUT;
     _retries = RH_DEFAULT_RETRIES;
+    memset(_seenIds, 0, sizeof(_seenIds));
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -109,7 +110,7 @@ bool RHReliableDatagram::sendtoWait(uint8_t* buf, uint8_t len, uint8_t address)
 }
 
 ////////////////////////////////////////////////////////////////////
-bool RHReliableDatagram::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* from, uint8_t* to, uint8_t* id, uint8_t* flags)
+bool RHReliableDatagram::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* from, uint8_t* to, uint8_t* id, uint8_t* flags, bool skipDeDupCheck)
 {  
     uint8_t _from;
     uint8_t _to;
@@ -121,21 +122,27 @@ bool RHReliableDatagram::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* from, 
 	// Never ACK an ACK
 	if (!(_flags & RH_FLAGS_ACK))
 	{
-	    // Its a normal message for this node, not an ACK
-	    if (_to != RH_BROADCAST_ADDRESS)
+	    // Its a normal message not an ACK
+	    if (_to ==_thisAddress)
 	    {
+	        // Its for this node and
 		// Its not a broadcast, so ACK it
 		// Acknowledge message with ACK set in flags and ID set to received ID
 		acknowledge(_id, _from);
 	    }
 	    // If we have not seen this message before, then we are interested in it
-	    if (_id != _seenIds[_from])
+	    if ( (_id != _seenIds[_from]) || skipDeDupCheck )
 	    {
 		if (from)  *from =  _from;
 		if (to)    *to =    _to;
 		if (id)    *id =    _id;
 		if (flags) *flags = _flags;
-		_seenIds[_from] = _id;
+            
+        if(!skipDeDupCheck)
+        {
+            _seenIds[_from] = _id;
+        }
+            
 		return true;
 	    }
 	    // Else just re-ack it and wait for a new one
