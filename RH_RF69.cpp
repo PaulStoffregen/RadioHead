@@ -260,17 +260,31 @@ void RH_RF69::readFifo()
 // These are low level functions that call the interrupt handler for the correct
 // instance of RH_RF69.
 // 3 interrupts allows us to have 3 different devices
+// ESP8266 requires ISRs to be kept in IRAM using the ICACHE_FLASH_ATTR flag.
+// FIXME: ESP32 requires the IRAM_ATTR flag, same purpose, can't try this out as I don't have this controller so not adding it here.
+#ifdef ESP8266
+void ICACHE_FLASH_ATTR RH_RF69::isr0()
+#else
 void RH_RF69::isr0()
+#endif
 {
     if (_deviceForInterrupt[0])
 	_deviceForInterrupt[0]->handleInterrupt();
 }
+#ifdef ESP8266
+void ICACHE_FLASH_ATTR RH_RF69::isr1()
+#else
 void RH_RF69::isr1()
+#endif
 {
     if (_deviceForInterrupt[1])
 	_deviceForInterrupt[1]->handleInterrupt();
 }
+#ifdef ESP8266
+void ICACHE_FLASH_ATTR RH_RF69::isr2()
+#else
 void RH_RF69::isr2()
+#endif
 {
     if (_deviceForInterrupt[2])
 	_deviceForInterrupt[2]->handleInterrupt();
