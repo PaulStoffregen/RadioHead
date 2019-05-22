@@ -194,7 +194,13 @@ bool RH_RF69::init()
 // RH_RF69 is unusual in Mthat it has several interrupt lines, and not a single, combined one.
 // On Moteino, only one of the several interrupt lines (DI0) from the RH_RF69 is connnected to the processor.
 // We use this to get PACKETSDENT and PAYLOADRADY interrupts.
+#ifdef ESP8266
+// ESP8266 requires ISRs to be kept in IRAM using the ICACHE_FLASH_ATTR flag.
+// FIXME: ESP32 requires the IRAM_ATTR flag, same purpose, can't try this out as I don't have this controller so not adding it here.
+void ICACHE_RAM_ATTR RH_RF69::handleInterrupt()
+#else
 void RH_RF69::handleInterrupt()
+#endif
 {
     // Get the interrupt cause
     uint8_t irqflags2 = spiRead(RH_RF69_REG_28_IRQFLAGS2);
@@ -260,10 +266,10 @@ void RH_RF69::readFifo()
 // These are low level functions that call the interrupt handler for the correct
 // instance of RH_RF69.
 // 3 interrupts allows us to have 3 different devices
+#ifdef ESP8266
 // ESP8266 requires ISRs to be kept in IRAM using the ICACHE_FLASH_ATTR flag.
 // FIXME: ESP32 requires the IRAM_ATTR flag, same purpose, can't try this out as I don't have this controller so not adding it here.
-#ifdef ESP8266
-void ICACHE_FLASH_ATTR RH_RF69::isr0()
+void ICACHE_RAM_ATTR RH_RF69::isr0()
 #else
 void RH_RF69::isr0()
 #endif
@@ -272,7 +278,9 @@ void RH_RF69::isr0()
 	_deviceForInterrupt[0]->handleInterrupt();
 }
 #ifdef ESP8266
-void ICACHE_FLASH_ATTR RH_RF69::isr1()
+// ESP8266 requires ISRs to be kept in IRAM using the ICACHE_FLASH_ATTR flag.
+// FIXME: ESP32 requires the IRAM_ATTR flag, same purpose, can't try this out as I don't have this controller so not adding it here.
+void ICACHE_RAM_ATTR RH_RF69::isr1()
 #else
 void RH_RF69::isr1()
 #endif
@@ -281,7 +289,9 @@ void RH_RF69::isr1()
 	_deviceForInterrupt[1]->handleInterrupt();
 }
 #ifdef ESP8266
-void ICACHE_FLASH_ATTR RH_RF69::isr2()
+// ESP8266 requires ISRs to be kept in IRAM using the ICACHE_FLASH_ATTR flag.
+// FIXME: ESP32 requires the IRAM_ATTR flag, same purpose, can't try this out as I don't have this controller so not adding it here.
+void ICACHE_RAM_ATTR RH_RF69::isr2()
 #else
 void RH_RF69::isr2()
 #endif
