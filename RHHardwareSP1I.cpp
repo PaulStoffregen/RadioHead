@@ -5,7 +5,7 @@
 // $Id: RHHardwareSPI1.cpp,v 1.16 2016/07/07 00:02:53 mikem Exp mikem $
 // This is a copy of the standard SPI node, that is hopefully setup to work on those processors
 // who have SPI1.  Currently I only have it setup for Teensy 3.5/3.6 and LC
-#if defined(__arm__) && defined(TEENSYDUINO) && (defined(KINETISL) || defined(__MK64FX512__) || defined(__MK66FX1M0__) )
+#if defined(__arm__) && defined(TEENSYDUINO) && (defined(KINETISL) || defined(__MK64FX512__) || defined(__MK66FX1M0__) || defined(__IMXRT1052__)|| defined(__IMXRT1062__))
 
 #include <RHHardwareSPI1.h>
 
