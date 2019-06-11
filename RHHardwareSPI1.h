@@ -6,7 +6,7 @@
 
 #ifndef RHHardwareSPI1_h
 #define RHHardwareSPI1_h
-#if defined(__arm__) && defined(TEENSYDUINO) && (defined(KINETISL) || defined(__MK64FX512__) || defined(__MK66FX1M0__) )
+#if defined(__arm__) && defined(TEENSYDUINO) && (defined(KINETISL) || defined(__MK64FX512__) || defined(__MK66FX1M0__) || defined(__IMXRT1052__)|| defined(__IMXRT1062__))
 
 #include <RHGenericSPI.h>
 
@@ -71,6 +71,6 @@ public:
 // Built in default instance
 extern RHHardwareSPI1 hardware_spi1;
 #else
-#error ("RadioHead SPI1 only supported on Teensy 3.5, 3.6 and LC")
+#error ("RadioHead SPI1 only supported on Teensy 3.5, 3.6, 4 and LC")
 #endif
 #endif
