@@ -9,7 +9,7 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
-// $Id: RHRouter.cpp,v 1.7 2015/08/13 02:45:47 mikem Exp $
+// $Id: RHRouter.cpp,v 1.10 2020/08/04 09:02:14 mikem Exp $
 
 #include <RHRouter.h>
 
@@ -21,6 +21,7 @@ RHRouter::RHRouter(RHGenericDriver& driver, uint8_t thisAddress)
     : RHReliableDatagram(driver, thisAddress)
 {
     _max_hops = RH_DEFAULT_MAX_HOPS;
+    _isa_router = true;
     clearRoutingTable();
 }
 
@@ -40,6 +41,11 @@ void RHRouter::setMaxHops(uint8_t max_hops)
     _max_hops = max_hops;
 }
 
+////////////////////////////////////////////////////////////////////
+void RHRouter::setIsaRouter(bool isa_router)
+{
+    _isa_router = isa_router;
+}
 ////////////////////////////////////////////////////////////////////
 void RHRouter::addRouteTo(uint8_t dest, uint8_t next_hop, uint8_t state)
 {
@@ -197,11 +203,13 @@ uint8_t RHRouter::route(RoutedMessage* message, uint8_t messageLen)
 // Subclasses may want to override this to peek at messages going past
 void RHRouter::peekAtMessage(RoutedMessage* message, uint8_t messageLen)
 {
-    // Default does nothing
+  // Default does nothing
+  (void)message; // Not used
+  (void)messageLen; // Not used
 }
 
 ////////////////////////////////////////////////////////////////////
-bool RHRouter::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t* dest, uint8_t* id, uint8_t* flags)
+bool RHRouter::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t* dest, uint8_t* id, uint8_t* flags, uint8_t* hops)
 {  
     uint8_t tmpMessageLen = sizeof(_tmpMessage);
     uint8_t _from;
@@ -249,7 +257,7 @@ bool RHRouter::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t*
 	    || (_thisAddress == 4 && _from == 2)
 
 #endif
-)
+	    )
 	{
 	    // OK
 	}
@@ -268,6 +276,7 @@ bool RHRouter::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t*
 	    if (dest)   *dest    = _tmpMessage.header.dest;
 	    if (id)     *id      = _tmpMessage.header.id;
 	    if (flags)  *flags   = _tmpMessage.header.flags;
+	    if (hops)   *hops    = _tmpMessage.header.hops;
 	    uint8_t msgLen = tmpMessageLen - sizeof(RoutedMessageHeader);
 	    if (*len > msgLen)
 		*len = msgLen;
@@ -280,7 +289,10 @@ bool RHRouter::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t*
 	    // Maybe it has to be routed to the next hop
 	    // REVISIT: if it fails due to no route or unable to deliver to the next hop, 
 	    // tell the originator. BUT HOW?
-	    route(&_tmpMessage, tmpMessageLen);
+	    
+	    // If we are forwarding packets, do so. Otherwise, drop.
+	    if (_isa_router)
+	        route(&_tmpMessage, tmpMessageLen);
 	}
 	// Discard it and maybe wait for another
     }
@@ -288,7 +300,7 @@ bool RHRouter::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t*
 }
 
 ////////////////////////////////////////////////////////////////////
-bool RHRouter::recvfromAckTimeout(uint8_t* buf, uint8_t* len, uint16_t timeout, uint8_t* source, uint8_t* dest, uint8_t* id, uint8_t* flags)
+bool RHRouter::recvfromAckTimeout(uint8_t* buf, uint8_t* len, uint16_t timeout, uint8_t* source, uint8_t* dest, uint8_t* id, uint8_t* flags, uint8_t* hops)
 {  
     unsigned long starttime = millis();
     int32_t timeLeft;
@@ -296,7 +308,7 @@ bool RHRouter::recvfromAckTimeout(uint8_t* buf, uint8_t* len, uint16_t timeout, 
     {
 	if (waitAvailableTimeout(timeLeft))
 	{
-	    if (recvfromAck(buf, len, source, dest, id, flags))
+	    if (recvfromAck(buf, len, source, dest, id, flags, hops))
 		return true;
 	}
 	YIELD;

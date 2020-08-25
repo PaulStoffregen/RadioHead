@@ -1,7 +1,7 @@
 // RHNRFSPIDriver.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-// $Id: RHNRFSPIDriver.h,v 1.3 2015/12/16 04:55:33 mikem Exp $
+// $Id: RHNRFSPIDriver.h,v 1.5 2017/11/06 00:04:08 mikem Exp $
 
 #ifndef RHNRFSPIDriver_h
 #define RHNRFSPIDriver_h
@@ -13,8 +13,8 @@ class RHGenericSPI;
 
 /////////////////////////////////////////////////////////////////////
 /// \class RHNRFSPIDriver RHNRFSPIDriver.h <RHNRFSPIDriver.h>
-/// \brief Base class for a RadioHead driver that use the SPI bus
-/// to communicate with its transport hardware.
+/// \brief Base class for RadioHead drivers that use the SPI bus
+/// to communicate with its NRF family transport hardware.
 ///
 /// This class can be subclassed by Drivers that require to use the SPI bus.
 /// It can be configured to use either the RHHardwareSPI class (if there is one available on the platform)
@@ -83,6 +83,12 @@ public:
     /// pin that will be used for slave select in subsquent SPI operations.
     /// \param[in] slaveSelectPin The pin to use
     void setSlaveSelectPin(uint8_t slaveSelectPin);
+
+    /// Set the SPI interrupt number
+    /// If SPI transactions can occur within an interrupt, tell the low level SPI
+    /// interface which interrupt is used
+    /// \param[in] interruptNumber the interrupt number
+    void spiUsingInterrupt(uint8_t interruptNumber);
 
 protected:
     /// Reference to the RHGenericSPI instance to use to trasnfer data with teh SPI device

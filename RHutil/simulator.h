@@ -1,7 +1,7 @@
 // simulator.h
 // Lets Arduino RadioHead sketches run within a simulator on Linux as a single process
 // Copyright (C) 2014 Mike McCauley
-// $Id: simulator.h,v 1.4 2015/08/13 02:45:47 mikem Exp mikem $
+// $Id: simulator.h,v 1.4 2015/08/13 02:45:47 mikem Exp $
 
 #ifndef simulator_h
 #define simulator_h

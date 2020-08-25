@@ -2,7 +2,7 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
-// $Id: RHMesh.h,v 1.15 2015/08/13 02:45:47 mikem Exp $
+// $Id: RHMesh.h,v 1.17 2020/08/04 09:02:14 mikem Exp $
 
 #ifndef RHMesh_h
 #define RHMesh_h
@@ -136,9 +136,9 @@ public:
     typedef struct
     {
 	MeshMessageHeader   header;  ///< msgType = RH_MESH_MESSAGE_TYPE_ROUTE_DISCOVERY_*
-	uint8_t             destlen; ///< Reserved. Must be 1.g
+	uint8_t             destlen; ///< Reserved. Must be 1
 	uint8_t             dest;    ///< The address of the destination node whose route is being sought
-	uint8_t             route[RH_MESH_MAX_MESSAGE_LEN - 1]; ///< List of node addresses visited so far. Length is implcit
+	uint8_t             route[RH_MESH_MAX_MESSAGE_LEN - 2]; ///< List of node addresses visited so far. Length is implcit
     } MeshRouteDiscoveryMessage;
 
     /// Signals a route failure
@@ -194,9 +194,10 @@ public:
     /// \param[in] dest If present and not NULL, the referenced uint8_t will be set to the DEST address
     /// \param[in] id If present and not NULL, the referenced uint8_t will be set to the ID
     /// \param[in] flags If present and not NULL, the referenced uint8_t will be set to the FLAGS
+    /// \param[in] hops If present and not NULL, the referenced uint8_t will be set to the HOPS
     /// (not just those addressed to this node).
     /// \return true if a valid message was received for this node and copied to buf
-    bool recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source = NULL, uint8_t* dest = NULL, uint8_t* id = NULL, uint8_t* flags = NULL);
+    bool recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source = NULL, uint8_t* dest = NULL, uint8_t* id = NULL, uint8_t* flags = NULL, uint8_t* hops = NULL);
 
     /// Starts the receiver if it is not running already.
     /// Similar to recvfromAck(), this will block until either a valid application layer 
@@ -209,9 +210,10 @@ public:
     /// \param[in] dest If present and not NULL, the referenced uint8_t will be set to the DEST address
     /// \param[in] id If present and not NULL, the referenced uint8_t will be set to the ID
     /// \param[in] flags If present and not NULL, the referenced uint8_t will be set to the FLAGS
+    /// \param[in] hops If present and not NULL, the referenced uint8_t will be set to the HOPS
     /// (not just those addressed to this node).
     /// \return true if a valid message was copied to buf
-    bool recvfromAckTimeout(uint8_t* buf, uint8_t* len,  uint16_t timeout, uint8_t* source = NULL, uint8_t* dest = NULL, uint8_t* id = NULL, uint8_t* flags = NULL);
+    bool recvfromAckTimeout(uint8_t* buf, uint8_t* len,  uint16_t timeout, uint8_t* source = NULL, uint8_t* dest = NULL, uint8_t* id = NULL, uint8_t* flags = NULL, uint8_t* hops = NULL);
 
 protected:
 

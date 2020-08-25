@@ -1,7 +1,7 @@
 // NRF24.cpp
 //
 // Copyright (C) 2012 Mike McCauley
-// $Id: RH_NRF24.cpp,v 1.22 2016/04/04 01:40:12 mikem Exp $
+// $Id: RH_NRF24.cpp,v 1.26 2018/01/06 23:50:45 mikem Exp $
 
 #include <RH_NRF24.h>
 
@@ -42,6 +42,8 @@ bool RH_NRF24::init()
         if (spiReadRegister(RH_NRF24_REG_1D_FEATURE) != (RH_NRF24_EN_DPL | RH_NRF24_EN_DYN_ACK))
             return false;
     }
+
+    clearRxBuf();
 
     // Make sure we are powered down
     setModeIdle();
@@ -187,6 +189,10 @@ bool RH_NRF24::send(const uint8_t* data, uint8_t len)
 {
     if (len > RH_NRF24_MAX_MESSAGE_LEN)
 	return false;
+
+    if (!waitCAD()) 
+	return false;  // Check channel activity
+
     // Set up the headers
     _buf[0] = _txHeaderTo;
     _buf[1] = _txHeaderFrom;
@@ -210,8 +216,13 @@ bool RH_NRF24::waitPacketSent()
     // end of transmission
     // We dont actually use auto-ack, so prob dont expect to see RH_NRF24_MAX_RT
     uint8_t status;
+    uint32_t start = millis();
     while (!((status = statusRead()) & (RH_NRF24_TX_DS | RH_NRF24_MAX_RT)))
+    {
+	if (((uint32_t)millis() - start) > 100) // Longer than any possible message
+	    break;  // Should never happen: TX never completed. Why?
 	YIELD;
+    }
 
     // Must clear RH_NRF24_MAX_RT if it is set, else no further comm
     if (status & RH_NRF24_MAX_RT)
@@ -234,27 +245,27 @@ bool RH_NRF24::printRegisters()
     // Iterate over register range, but don't process registers not in use.
     for (uint8_t r = RH_NRF24_REG_00_CONFIG; r <= RH_NRF24_REG_1D_FEATURE; r++)
     {
-      if ((r <= RH_NRF24_REG_17_FIFO_STATUS) || (r >= RH_NRF24_REG_1C_DYNPD))
-      {
-        Serial.print(r, HEX);
-        Serial.print(": ");
-        uint8_t len = 1;
-        // Address registers are 5 bytes in size
-        if (    (RH_NRF24_REG_0A_RX_ADDR_P0 == r)
-             || (RH_NRF24_REG_0B_RX_ADDR_P1 == r)
-             || (RH_NRF24_REG_10_TX_ADDR    == r) )
-        {
-          len = 5;
-        }
-        uint8_t buf[5];
-        spiBurstReadRegister(r, buf, len);
-        for (uint8_t j = 0; j < len; ++j)
-        {
-          Serial.print(buf[j], HEX);
-          Serial.print(" ");
-        }
-        Serial.println("");
-      }
+	if ((r <= RH_NRF24_REG_17_FIFO_STATUS) || (r >= RH_NRF24_REG_1C_DYNPD))
+	{
+	    Serial.print(r, HEX);
+	    Serial.print(": ");
+	    uint8_t len = 1;
+	    // Address registers are 5 bytes in size
+	    if (    (RH_NRF24_REG_0A_RX_ADDR_P0 == r)
+		    || (RH_NRF24_REG_0B_RX_ADDR_P1 == r)
+		    || (RH_NRF24_REG_10_TX_ADDR    == r) )
+	    {
+		len = 5;
+	    }
+	    uint8_t buf[5];
+	    spiBurstReadRegister(r, buf, len);
+	    for (uint8_t j = 0; j < len; ++j)
+	    {
+		Serial.print(buf[j], HEX);
+		Serial.print(" ");
+	    }
+	    Serial.println("");
+	}
     }
 #endif
 

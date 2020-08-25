@@ -1,7 +1,7 @@
 // RH_MRF89.cpp
 //
 // Copyright (C) 2015 Mike McCauley
-// $Id: RH_MRF89.cpp,v 1.7 2015/12/31 04:23:12 mikem Exp $
+// $Id: RH_MRF89.cpp,v 1.10 2019/09/02 05:21:52 mikem Exp $
 
 #include <RH_MRF89.h>
 #define BAND_915
@@ -66,6 +66,9 @@ bool RH_MRF89::init()
 #ifdef RH_ATTACHINTERRUPT_TAKES_PIN_NUMBER
     interruptNumber = _interruptPin;
 #endif
+
+    // Tell the low level SPI interface we will use SPI within this interrupt
+    spiUsingInterrupt(interruptNumber);
 
     // Make sure we are not in some unexpected mode from a previous run    
     setOpMode(RH_MRF89_CMOD_STANDBY); 
@@ -235,17 +238,17 @@ void RH_MRF89::handleInterrupt()
 // These are low level functions that call the interrupt handler for the correct
 // instance of RH_MRF89.
 // 3 interrupts allows us to have 3 different devices
-void RH_MRF89::isr0()
+void RH_INTERRUPT_ATTR RH_MRF89::isr0()
 {
     if (_deviceForInterrupt[0])
 	_deviceForInterrupt[0]->handleInterrupt();
 }
-void RH_MRF89::isr1()
+void RH_INTERRUPT_ATTR RH_MRF89::isr1()
 {
     if (_deviceForInterrupt[1])
 	_deviceForInterrupt[1]->handleInterrupt();
 }
-void RH_MRF89::isr2()
+void RH_INTERRUPT_ATTR RH_MRF89::isr2()
 {
     if (_deviceForInterrupt[2])
 	_deviceForInterrupt[2]->handleInterrupt();
@@ -393,6 +396,9 @@ bool RH_MRF89::send(const uint8_t* data, uint8_t len)
     waitPacketSent(); // Make sure we dont interrupt an outgoing message
     setModeIdle();
     
+    if (!waitCAD()) 
+	return false;  // Check channel activity
+
     // First octet is the length of the chip payload
     // 0 length messages are transmitted but never trigger a receive!
     spiWriteData(len + RH_MRF89_HEADER_LEN);

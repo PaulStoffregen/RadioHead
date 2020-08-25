@@ -1,7 +1,7 @@
 // RH_NRF24.h
 // Author: Mike McCauley
 // Copyright (C) 2012 Mike McCauley
-// $Id: RH_NRF24.h,v 1.19 2016/07/07 00:02:53 mikem Exp mikem $
+// $Id: RH_NRF24.h,v 1.21 2020/06/15 23:39:39 mikem Exp $
 //
 
 #ifndef RH_NRF24_h
@@ -154,7 +154,7 @@
 
 /////////////////////////////////////////////////////////////////////
 /// \class RH_NRF24 RH_NRF24.h <RH_NRF24.h>
-/// \brief Send and receive addressed, reliable, acknowledged datagrams by nRF24L01 and compatible transceivers.
+/// \brief Send and receive unaddressed, unreliable datagrams by nRF24L01 and compatible transceivers.
 ///
 /// Supported transceivers include:
 /// - Nordic nRF24 based 2.4GHz radio modules, such as nRF24L01 http://www.nordicsemi.com/eng/Products/2.4GHz-RF/nRF24L01
@@ -347,7 +347,13 @@
 /// \code
 ///
 /// You can override the default settings for the CSN and CE pins 
-/// in the NRF24() constructor if you wish to connect the slave select CSN to other than the normal one for your 
+/// in the NRF24() constructor if you wish to connect the slave select CSN to other than the normal one for your
+///
+/// Caution: on the Raspberry Pi Zero, the hardware SPI, is only connected to the 
+/// ICSP-header. So in order to use the RF, one must either connect it to the SPI-pins 
+/// of the ICSP-header or use the software SPI provided by RHSoftwareSPI.
+/// the mapping of the SPI-Pins for each board here: 
+/// https://www.arduino.cc/en/Reference/SPI
 /// Arduino (D10 for Diecimila, Uno etc and D53 for Mega)
 ///
 /// Caution: on some Arduinos such as the Mega 2560, if you set the slave select pin to be other than the usual SS 
@@ -632,6 +638,8 @@ private:
 
 /// @example nrf24_client.pde
 /// @example nrf24_server.pde
+/// @example nrf24_encrypted_client.pde
+/// @example nrf24_encrypted_server.pde
 /// @example nrf24_reliable_datagram_client.pde
 /// @example nrf24_reliable_datagram_server.pde
 /// @example RasPiRH.cpp

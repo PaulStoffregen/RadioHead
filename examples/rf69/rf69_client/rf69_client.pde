@@ -17,20 +17,24 @@
 // Singleton instance of the radio driver
 RH_RF69 rf69;
 //RH_RF69 rf69(15, 16); // For RF69 on PJRC breakout board with Teensy 3.1
+//RH_RF69 rf69(4, 2); // For MoteinoMEGA https://lowpowerlab.com/shop/moteinomega
+//RH_RF69 rf69(8, 7); // Adafruit Feather 32u4
 
 void setup() 
 {
   Serial.begin(9600);
+  while (!Serial) 
+    ;
   if (!rf69.init())
     Serial.println("init failed");
-  // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
+  // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM (for low power module)
   // No encryption
   if (!rf69.setFrequency(433.0))
     Serial.println("setFrequency failed");
 
-  // If you are using a high power RF69, you *must* set a Tx power in the
-  // range 14 to 20 like this:
-  // rf69.setTxPower(14);
+  // If you are using a high power RF69 eg RFM69HW, you *must* set a Tx power with the
+  // ishighpowermodule flag set like this:
+  //rf69.setTxPower(14, true);
 
   // The encryption key has to be the same as the one in the server
   uint8_t key[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
