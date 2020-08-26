@@ -18,10 +18,23 @@ bool RH_NRF24::init()
 {
     // Teensy with nRF24 is unreliable at 8MHz:
     // so is Arduino with RF73
-    _spi.setFrequency(RHGenericSPI::Frequency1MHz);
+    // Must allow the radio time to settle else configuration bits will not necessarily stick.
+    // This is actually only required following power up but some settling time also appears to
+    // be required after resets too. For full coverage, we'll always assume the worst.
+    // Enabling 16b CRC is by far the most obvious case if the wrong timing is used - or skipped.
+    // Technically we require 4.5ms + 14us as a worst case. We'll just call it 5ms for good measure.
+    // WARNING: Delay is based on P-variant whereby non-P *may* require different timing.
+    delay(15);
+    //Serial.print("RH_NRF24::init CE: ");
+    //Serial.println(_chipEnablePin, DEC);
+    // lets try 4...
+    _spi.setFrequency(RHGenericSPI::Frequency4MHz);
+    _spi.setBitOrder(RHGenericSPI::BitOrderMSBFirst);
+    _spi.setDataMode(RHGenericSPI::DataMode0);
+
     if (!RHNRFSPIDriver::init())
 	return false;
-
+    //Serial.println("After RHNRFSPIDriver::init()");
     // Initialise the slave select pin
     pinMode(_chipEnablePin, OUTPUT);
     digitalWrite(_chipEnablePin, LOW);
@@ -39,8 +52,10 @@ bool RH_NRF24::init()
 	spiWrite(RH_NRF24_COMMAND_ACTIVATE, 0x73);
         // Enable dynamic payload length, disable payload-with-ack, enable noack
         spiWriteRegister(RH_NRF24_REG_1D_FEATURE, RH_NRF24_EN_DPL | RH_NRF24_EN_DYN_ACK);
-        if (spiReadRegister(RH_NRF24_REG_1D_FEATURE) != (RH_NRF24_EN_DPL | RH_NRF24_EN_DYN_ACK))
+        if (spiReadRegister(RH_NRF24_REG_1D_FEATURE) != (RH_NRF24_EN_DPL | RH_NRF24_EN_DYN_ACK)) {
+            //Serial.println("Failed RH_NRF24_REG_1D_FEATURE");
             return false;
+        }
     }
 
     clearRxBuf();
