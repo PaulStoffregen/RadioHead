@@ -1,11 +1,20 @@
 // RH_RF24.cpp
 //
 // Copyright (C) 2011 Mike McCauley
-// $Id: RH_RF24.cpp,v 1.16 2016/04/04 01:40:12 mikem Exp $
+// $Id: RH_RF24.cpp,v 1.24 2019/09/02 05:21:52 mikem Exp $
 
 #include <RH_RF24.h>
-// Generated with Silicon Labs WDS software:
-#include "radio_config_Si4460.h"
+
+// Use one of the pre-built radio configuration files
+// You can use other WDS generated sample configs accorinding to your needs
+// or generate a custom one with WDS and include it here
+// See RF24configs/README for file name encoding standard
+//#include "RF24configs/radio_config_Si4464_27_434_2GFSK_5_10.h"
+#include "RF24configs/radio_config_Si4464_30_434_2GFSK_5_10.h"
+//#include "RF24configs/radio_config_Si4464_30_434_2GFSK_10_20.h"
+//#include "RF24configs/radio_config_Si4464_30_915_2GFSK_5_10.h"
+//#include "RF24configs/radio_config_Si4464_30_915_2GFSK_10_20.h"
+
 
 // Interrupt vectors for the 3 Arduino interrupt pins
 // Each interrupt can be handled by a different instance of RH_RF24, allowing you to have
@@ -15,47 +24,7 @@ uint8_t RH_RF24::_interruptCount = 0; // Index into _deviceForInterrupt for next
 
 // This configuration data is defined in radio_config_Si4460.h 
 // which was generated with the Silicon Labs WDS program
-PROGMEM const uint8_t RFM26_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
-
-// These configurations were all generated originally by the Silicon LAbs WDS configuration tool.
-// The configurations were imported into RH_RF24, the complete properties set dumped to a file with printRegisters, then 
-// RH_RF24_property_data/convert.pl was used to generate the entry for this table.
-// Contributions of new complete and tested ModemConfigs ready to add to this list will be readily accepted.
-// Casual suggestions of new schemes without working examples will probably be passed over
-PROGMEM static const RH_RF24::ModemConfig MODEM_CONFIG_TABLE[] =
-{
-    // These were generated with convert.pl from data in RH_RF24_property_data
-    // FSK_Rb0_5Fd1
-    { 0x02, 0x00, 0x13, 0x88, 0x01, 0x00, 0x00, 0x46, 0x01, 0x34, 0x11, 0x02, 0x71, 0x00, 0xd1, 0xb7, 0x00, 0x69, 0x02, 0x36, 0x80, 0x01, 0x5a, 0xfc, 0xe2, 0x11, 0x89, 0x89, 0x00, 0x02, 0xff, 0xff, 0x00, 0x2b, 0x02, 0x81, 0x00, 0xad, 0x3a, 0xff, 0xba, 0x0f, 0x51, 0xcf, 0xa9, 0xc9, 0xfc, 0x1b, 0x1e, 0x0f, 0x01, 0xfc, 0xfd, 0x15, 0xff, 0x00, 0x0f, 0xff, 0xba, 0x0f, 0x51, 0xcf, 0xa9, 0xc9, 0xfc, 0x1b, 0x1e, 0x0f, 0x01, 0xfc, 0xfd, 0x15, 0xff, 0x00, 0x0f, 0x3f, 0x2c, 0x0e, 0x04, 0x0c, 0x73, },
-
-    // FSK_Rb5Fd10
-    { 0x02, 0x00, 0xc3, 0x50, 0x01, 0x00, 0x02, 0xbb, 0x01, 0x30, 0x20, 0x01, 0x77, 0x01, 0x5d, 0x86, 0x00, 0xaf, 0x02, 0x36, 0x80, 0x0f, 0x15, 0x87, 0xe2, 0x11, 0x52, 0x52, 0x00, 0x02, 0xff, 0xff, 0x00, 0x2a, 0x02, 0x83, 0x01, 0x20, 0x40, 0xff, 0xba, 0x0f, 0x51, 0xcf, 0xa9, 0xc9, 0xfc, 0x1b, 0x1e, 0x0f, 0x01, 0xfc, 0xfd, 0x15, 0xff, 0x00, 0x0f, 0xff, 0xba, 0x0f, 0x51, 0xcf, 0xa9, 0xc9, 0xfc, 0x1b, 0x1e, 0x0f, 0x01, 0xfc, 0xfd, 0x15, 0xff, 0x00, 0x0f, 0x3f, 0x2c, 0x0e, 0x04, 0x0c, 0x73, },
-
-    // FSK_Rb50Fd100
-    { 0x02, 0x07, 0xa1, 0x20, 0x01, 0x00, 0x1b, 0x4f, 0x01, 0x00, 0x10, 0x00, 0xc8, 0x02, 0x8f, 0x5c, 0x01, 0x48, 0x02, 0x36, 0x80, 0x92, 0x0a, 0x46, 0xe2, 0x11, 0x2c, 0x2c, 0x00, 0x02, 0xff, 0xff, 0x00, 0x29, 0x02, 0x83, 0x02, 0x7f, 0x40, 0xff, 0xc4, 0x30, 0x7f, 0xf5, 0xb5, 0xb8, 0xde, 0x05, 0x17, 0x16, 0x0c, 0x03, 0x00, 0x15, 0xff, 0x00, 0x00, 0xff, 0xc4, 0x30, 0x7f, 0xf5, 0xb5, 0xb8, 0xde, 0x05, 0x17, 0x16, 0x0c, 0x03, 0x00, 0x15, 0xff, 0x00, 0x00, 0x3f, 0x2c, 0x0e, 0x04, 0x0c, 0x73, },
-  
-    //FSK_Rb150Fd300
-    { 0x02, 0x16, 0xe3, 0x60, 0x01, 0x00, 0x51, 0xec, 0x01, 0x00, 0x30, 0x00, 0xc8, 0x02, 0x8f, 0x5c, 0x01, 0x48, 0x02, 0x47, 0x83, 0x6a, 0x04, 0xb5, 0xe2, 0x22, 0x16, 0x16, 0x00, 0x02, 0xff, 0xff, 0x00, 0x29, 0x02, 0x83, 0x02, 0x7f, 0x40, 0xff, 0xc4, 0x30, 0x7f, 0xf5, 0xb5, 0xb8, 0xde, 0x05, 0x17, 0x16, 0x0c, 0x03, 0x00, 0x15, 0xff, 0x00, 0x00, 0xff, 0xc4, 0x30, 0x7f, 0xf5, 0xb5, 0xb8, 0xde, 0x05, 0x17, 0x16, 0x0c, 0x03, 0x00, 0x15, 0xff, 0x00, 0x00, 0x3f, 0x39, 0x04, 0x05, 0x04, 0x01, },
-
-    // GFSK_Rb0_5Fd1
-    { 0x03, 0x00, 0x4e, 0x20, 0x05, 0x00, 0x00, 0x46, 0x01, 0x34, 0x11, 0x02, 0x71, 0x00, 0xd1, 0xb7, 0x00, 0x69, 0x02, 0x36, 0x80, 0x01, 0x5a, 0xfc, 0xe2, 0x11, 0x89, 0x89, 0x00, 0x1a, 0xff, 0xff, 0x00, 0x2b, 0x02, 0x81, 0x00, 0x68, 0x3a, 0xff, 0xba, 0x0f, 0x51, 0xcf, 0xa9, 0xc9, 0xfc, 0x1b, 0x1e, 0x0f, 0x01, 0xfc, 0xfd, 0x15, 0xff, 0x00, 0x0f, 0xff, 0xba, 0x0f, 0x51, 0xcf, 0xa9, 0xc9, 0xfc, 0x1b, 0x1e, 0x0f, 0x01, 0xfc, 0xfd, 0x15, 0xff, 0x00, 0x0f, 0x3f, 0x2c, 0x0e, 0x04, 0x0c, 0x73, },
-
-    // GFSK_Rb5Fd10
-    { 0x03, 0x03, 0x0d, 0x40, 0x05, 0x00, 0x02, 0xbb, 0x01, 0x30, 0x20, 0x01, 0x77, 0x01, 0x5d, 0x86, 0x00, 0xaf, 0x02, 0x36, 0x80, 0x0f, 0x15, 0x87, 0xe2, 0x11, 0x52, 0x52, 0x00, 0x1a, 0xff, 0xff, 0x00, 0x2a, 0x02, 0x83, 0x00, 0xad, 0x40, 0xff, 0xba, 0x0f, 0x51, 0xcf, 0xa9, 0xc9, 0xfc, 0x1b, 0x1e, 0x0f, 0x01, 0xfc, 0xfd, 0x15, 0xff, 0x00, 0x0f, 0xff, 0xba, 0x0f, 0x51, 0xcf, 0xa9, 0xc9, 0xfc, 0x1b, 0x1e, 0x0f, 0x01, 0xfc, 0xfd, 0x15, 0xff, 0x00, 0x0f, 0x3f, 0x2c, 0x0e, 0x04, 0x0c, 0x73, },
-
-    // GFSK_Rb50Fd100
-    { 0x03, 0x0f, 0x42, 0x40, 0x09, 0x00, 0x1b, 0x4f, 0x01, 0x00, 0x10, 0x00, 0xc8, 0x02, 0x8f, 0x5c, 0x01, 0x48, 0x02, 0x36, 0x80, 0x92, 0x0a, 0x46, 0xe2, 0x11, 0x2c, 0x2c, 0x00, 0x1a, 0xff, 0xff, 0x00, 0x29, 0x02, 0x83, 0x01, 0x7f, 0x40, 0xff, 0xc4, 0x30, 0x7f, 0xf5, 0xb5, 0xb8, 0xde, 0x05, 0x17, 0x16, 0x0c, 0x03, 0x00, 0x15, 0xff, 0x00, 0x00, 0xff, 0xc4, 0x30, 0x7f, 0xf5, 0xb5, 0xb8, 0xde, 0x05, 0x17, 0x16, 0x0c, 0x03, 0x00, 0x15, 0xff, 0x00, 0x00, 0x3f, 0x2c, 0x0e, 0x04, 0x0c, 0x73, },
-
-    // GFSK_Rb150Fd300
-    { 0x03, 0x2d, 0xc6, 0xc0, 0x09, 0x00, 0x51, 0xec, 0x01, 0x00, 0x30, 0x00, 0xc8, 0x02, 0x8f, 0x5c, 0x01, 0x48, 0x02, 0x47, 0x83, 0x6a, 0x04, 0xb5, 0xe2, 0x22, 0x16, 0x16, 0x00, 0x1a, 0xff, 0xff, 0x00, 0x29, 0x02, 0x83, 0x01, 0x7f, 0x40, 0xff, 0xc4, 0x30, 0x7f, 0xf5, 0xb5, 0xb8, 0xde, 0x05, 0x17, 0x16, 0x0c, 0x03, 0x00, 0x15, 0xff, 0x00, 0x00, 0xff, 0xc4, 0x30, 0x7f, 0xf5, 0xb5, 0xb8, 0xde, 0x05, 0x17, 0x16, 0x0c, 0x03, 0x00, 0x15, 0xff, 0x00, 0x00, 0x3f, 0x39, 0x04, 0x05, 0x04, 0x01, },
-
-    // OOK_Rb5Bw30
-    { 0x01, 0x00, 0xc3, 0x50, 0x01, 0x00, 0x00, 0x00, 0x00, 0x34, 0x10, 0x00, 0x3f, 0x08, 0x31, 0x27, 0x04, 0x10, 0x02, 0x12, 0x00, 0x2c, 0x03, 0xf9, 0x62, 0x11, 0x0e, 0x0e, 0x00, 0x02, 0xff, 0xff, 0x00, 0x27, 0x00, 0x00, 0x07, 0xff, 0x40, 0xcc, 0xa1, 0x30, 0xa0, 0x21, 0xd1, 0xb9, 0xc9, 0xea, 0x05, 0x12, 0x11, 0x0a, 0x04, 0x15, 0xfc, 0x03, 0x00, 0xcc, 0xa1, 0x30, 0xa0, 0x21, 0xd1, 0xb9, 0xc9, 0xea, 0x05, 0x12, 0x11, 0x0a, 0x04, 0x15, 0xfc, 0x03, 0x00, 0x3f, 0x2c, 0x0e, 0x04, 0x0c, 0x73, },
-
-    // OOK_Rb10Bw40
-    { 0x01, 0x01, 0x86, 0xa0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x32, 0x20, 0x00, 0x5e, 0x05, 0x76, 0x1a, 0x02, 0xb9, 0x02, 0x12, 0x00, 0x57, 0x02, 0xb0, 0x62, 0x11, 0x15, 0x15, 0x00, 0x02, 0xff, 0xff, 0x00, 0x28, 0x00, 0x00, 0x07, 0xff, 0x40, 0xa2, 0x81, 0x26, 0xaf, 0x3f, 0xee, 0xc8, 0xc7, 0xdb, 0xf2, 0x02, 0x08, 0x07, 0x03, 0x15, 0xfc, 0x0f, 0x00, 0xa2, 0x81, 0x26, 0xaf, 0x3f, 0xee, 0xc8, 0xc7, 0xdb, 0xf2, 0x02, 0x08, 0x07, 0x03, 0x15, 0xfc, 0x0f, 0x00, 0x3f, 0x2c, 0x0e, 0x04, 0x0c, 0x73, },
-
-};
+PROGMEM const uint8_t RF24_CONFIGURATION_DATA[] = RADIO_CONFIGURATION_DATA_ARRAY;
 
 RH_RF24::RH_RF24(uint8_t slaveSelectPin, uint8_t interruptPin, uint8_t sdnPin, RHGenericSPI& spi)
     :
@@ -85,13 +54,12 @@ bool RH_RF24::init()
     interruptNumber = _interruptPin;
 #endif
 
+    // Tell the low level SPI interface we will use SPI within this interrupt
+    spiUsingInterrupt(interruptNumber);
+
     // Initialise the radio
     power_on_reset();
     cmd_clear_all_interrupts();
-    // Here we use a configuration generated by the Silicon Las Wireless Development Suite
-    // in radio_config_Si4460.h
-    // WE override a few things later that we ned to be sure of.
-    configure(RFM26_CONFIGURATION_DATA);
 
     // Get the device type and check it
     // This also tests whether we are really connected to a device
@@ -105,6 +73,11 @@ bool RH_RF24::init()
 	_deviceType != 0x4463 &&
 	_deviceType != 0x4464)
 	return false; // Unknown radio type, or not connected
+
+    // Here we use a configuration generated by the Silicon Labs Wireless Development Suite
+    // #included above
+    // We override a few things later that we ned to be sure of.
+    configure(RF24_CONFIGURATION_DATA);
 
     // Add by Adrien van den Bossche <vandenbo@univ-tlse2.fr> for Teensy
     // ARM M4 requires the below. else pin interrupt doesn't work properly.
@@ -175,13 +148,10 @@ bool RH_RF24::init()
     setCRCPolynomial(CRC_16_IBM);
     uint8_t syncwords[] = { 0x2d, 0xd4 };
     setSyncWords(syncwords, sizeof(syncwords)); // Same as RF22's
-    // Reasonably fast and reliable default speed and modulation
-    setModemConfig(GFSK_Rb5Fd10);
     // 3 would be sufficient, but this is the same as RF22's
     // actualy, 4 seems to work much better for some modulations
     setPreambleLength(4);
-    // An innocuous ISM frequency, same as RF22's
-    setFrequency(434.0);
+    // Default freq comes from the radio config file
     // About 2.4dBm on RFM24:
     setTxPower(0x10); 
 
@@ -295,17 +265,17 @@ void RH_RF24::clearBuffer()
 // These are low level functions that call the interrupt handler for the correct
 // instance of RH_RF24.
 // 3 interrupts allows us to have 3 different devices
-void RH_RF24::isr0()
+void RH_INTERRUPT_ATTR RH_RF24::isr0()
 {
     if (_deviceForInterrupt[0])
 	_deviceForInterrupt[0]->handleInterrupt();
 }
-void RH_RF24::isr1()
+void RH_INTERRUPT_ATTR RH_RF24::isr1()
 {
     if (_deviceForInterrupt[1])
 	_deviceForInterrupt[1]->handleInterrupt();
 }
-void RH_RF24::isr2()
+void RH_INTERRUPT_ATTR RH_RF24::isr2()
 {
     if (_deviceForInterrupt[2])
 	_deviceForInterrupt[2]->handleInterrupt();
@@ -345,6 +315,9 @@ bool RH_RF24::send(const uint8_t* data, uint8_t len)
     waitPacketSent(); // Make sure we dont interrupt an outgoing message
     setModeIdle(); // Prevent RX while filling the fifo
 
+    if (!waitCAD()) 
+	return false;  // Check channel activity
+
     // Put the payload in the FIFO
     // First the length in fixed length field 1. This wont appear in the receiver fifo since
     // we have turned off IN_FIFO in PKT_LEN
@@ -373,9 +346,9 @@ bool RH_RF24::send(const uint8_t* data, uint8_t len)
 bool RH_RF24::writeTxFifo(uint8_t *data, uint8_t len)
 {
     ATOMIC_BLOCK_START;
-    _spi.beginTransaction();
     // First send the command
     digitalWrite(_slaveSelectPin, LOW);
+    _spi.beginTransaction();
     _spi.transfer(RH_RF24_CMD_TX_FIFO_WRITE);
     // Now write any write data
     while (len--)
@@ -424,7 +397,6 @@ void RH_RF24::readNextFragment()
     // So we have room
     // Now read the fifo_len bytes from the RX FIFO
     // This is different to command() since we dont wait for CTS
-    _spi.beginTransaction();
     digitalWrite(_slaveSelectPin, LOW);
     _spi.transfer(RH_RF24_CMD_RX_FIFO_READ);
     uint8_t* p = _buf + _bufLen;
@@ -432,7 +404,6 @@ void RH_RF24::readNextFragment()
     while (l--)
 	*p++ = _spi.transfer(0);
     digitalWrite(_slaveSelectPin, HIGH);
-    _spi.endTransaction();
     _bufLen += fifo_len;
 }
 
@@ -444,101 +415,21 @@ uint8_t RH_RF24::maxMessageLength()
 // Sets registers from a canned modem configuration structure
 void RH_RF24::setModemRegisters(const ModemConfig* config)
 {
-    // This list also generated with convert.pl
-    set_properties(0x2000, &config->prop_2000, 1);
-    set_properties(0x2003, &config->prop_2003, 1);
-    set_properties(0x2004, &config->prop_2004, 1);
-    set_properties(0x2005, &config->prop_2005, 1);
-    set_properties(0x2006, &config->prop_2006, 1);
-    set_properties(0x200b, &config->prop_200b, 1);
-    set_properties(0x200c, &config->prop_200c, 1);
-    set_properties(0x2018, &config->prop_2018, 1);
-    set_properties(0x201e, &config->prop_201e, 1);
-    set_properties(0x201f, &config->prop_201f, 1);
-    set_properties(0x2022, &config->prop_2022, 1);
-    set_properties(0x2023, &config->prop_2023, 1);
-    set_properties(0x2024, &config->prop_2024, 1);
-    set_properties(0x2025, &config->prop_2025, 1);
-    set_properties(0x2026, &config->prop_2026, 1);
-    set_properties(0x2027, &config->prop_2027, 1);
-    set_properties(0x2028, &config->prop_2028, 1);
-    set_properties(0x2029, &config->prop_2029, 1);
-    set_properties(0x202d, &config->prop_202d, 1);
-    set_properties(0x202e, &config->prop_202e, 1);
-    set_properties(0x202f, &config->prop_202f, 1);
-    set_properties(0x2030, &config->prop_2030, 1);
-    set_properties(0x2031, &config->prop_2031, 1);
-    set_properties(0x2035, &config->prop_2035, 1);
-    set_properties(0x2038, &config->prop_2038, 1);
-    set_properties(0x2039, &config->prop_2039, 1);
-    set_properties(0x203a, &config->prop_203a, 1);
-    set_properties(0x203b, &config->prop_203b, 1);
-    set_properties(0x203c, &config->prop_203c, 1);
-    set_properties(0x203d, &config->prop_203d, 1);
-    set_properties(0x203e, &config->prop_203e, 1);
-    set_properties(0x203f, &config->prop_203f, 1);
-    set_properties(0x2040, &config->prop_2040, 1);
-    set_properties(0x2043, &config->prop_2043, 1);
-    set_properties(0x2045, &config->prop_2045, 1);
-    set_properties(0x2046, &config->prop_2046, 1);
-    set_properties(0x2047, &config->prop_2047, 1);
-    set_properties(0x204e, &config->prop_204e, 1);
-    set_properties(0x2100, &config->prop_2100, 1);
-    set_properties(0x2101, &config->prop_2101, 1);
-    set_properties(0x2102, &config->prop_2102, 1);
-    set_properties(0x2103, &config->prop_2103, 1);
-    set_properties(0x2104, &config->prop_2104, 1);
-    set_properties(0x2105, &config->prop_2105, 1);
-    set_properties(0x2106, &config->prop_2106, 1);
-    set_properties(0x2107, &config->prop_2107, 1);
-    set_properties(0x2108, &config->prop_2108, 1);
-    set_properties(0x2109, &config->prop_2109, 1);
-    set_properties(0x210a, &config->prop_210a, 1);
-    set_properties(0x210b, &config->prop_210b, 1);
-    set_properties(0x210c, &config->prop_210c, 1);
-    set_properties(0x210d, &config->prop_210d, 1);
-    set_properties(0x210e, &config->prop_210e, 1);
-    set_properties(0x210f, &config->prop_210f, 1);
-    set_properties(0x2110, &config->prop_2110, 1);
-    set_properties(0x2111, &config->prop_2111, 1);
-    set_properties(0x2112, &config->prop_2112, 1);
-    set_properties(0x2113, &config->prop_2113, 1);
-    set_properties(0x2114, &config->prop_2114, 1);
-    set_properties(0x2115, &config->prop_2115, 1);
-    set_properties(0x2116, &config->prop_2116, 1);
-    set_properties(0x2117, &config->prop_2117, 1);
-    set_properties(0x2118, &config->prop_2118, 1);
-    set_properties(0x2119, &config->prop_2119, 1);
-    set_properties(0x211a, &config->prop_211a, 1);
-    set_properties(0x211b, &config->prop_211b, 1);
-    set_properties(0x211c, &config->prop_211c, 1);
-    set_properties(0x211d, &config->prop_211d, 1);
-    set_properties(0x211e, &config->prop_211e, 1);
-    set_properties(0x211f, &config->prop_211f, 1);
-    set_properties(0x2120, &config->prop_2120, 1);
-    set_properties(0x2121, &config->prop_2121, 1);
-    set_properties(0x2122, &config->prop_2122, 1);
-    set_properties(0x2123, &config->prop_2123, 1);
-    set_properties(0x2203, &config->prop_2203, 1);
-    set_properties(0x2300, &config->prop_2300, 1);
-    set_properties(0x2301, &config->prop_2301, 1);
-    set_properties(0x2303, &config->prop_2303, 1);
-    set_properties(0x2304, &config->prop_2304, 1);
-    set_properties(0x2305, &config->prop_2305, 1);
+#ifdef RH_HAVE_SERIAL
+  Serial.println("Programming Error: setModemRegisters is obsolete. Generate custom radio config file with WDS instead");
+#endif
+  (void)config; // Prevent warnings
 }
 
 // Set one of the canned Modem configs
 // Returns true if its a valid choice
 bool RH_RF24::setModemConfig(ModemConfigChoice index)
 {
-    if (index > (signed int)(sizeof(MODEM_CONFIG_TABLE) / sizeof(ModemConfig)))
-        return false;
-
-    ModemConfig cfg;
-    memcpy_P(&cfg, &MODEM_CONFIG_TABLE[index], sizeof(RH_RF24::ModemConfig));
-    setModemRegisters(&cfg);
-
-    return true;
+#ifdef RH_HAVE_SERIAL
+  Serial.println("Programming Error: setModemRegisters is obsolete. Generate custom radio config file with WDS instead");
+  (void)index; // Prevent warnings
+#endif
+  return false;
 }
 
 void RH_RF24::setPreambleLength(uint16_t bytes)
@@ -572,6 +463,7 @@ void RH_RF24::setSyncWords(const uint8_t* syncWords, uint8_t len)
 
 bool RH_RF24::setFrequency(float centre, float afcPullInRange)
 {
+  (void)afcPullInRange; // Not used
     // See Si446x Data Sheet section 5.3.1
     // Also the Si446x PLL Synthesizer / VCO_CNT Calculator Rev 0.4
     uint8_t outdiv;
@@ -621,8 +513,8 @@ bool RH_RF24::setFrequency(float centre, float afcPullInRange)
 
     // Now generate the RF frequency properties
     // Need the Xtal/XO freq from the radio_config file:
-    uint32_t xtal_frequency[1] = RADIO_CONFIGURATION_DATA_RADIO_XO_FREQ;
-    unsigned long f_pfd = 2 * xtal_frequency[0] / outdiv;
+    uint32_t xtal_frequency = RADIO_CONFIGURATION_DATA_RADIO_XO_FREQ;
+    unsigned long f_pfd = 2 * xtal_frequency / outdiv;
     unsigned int n = ((unsigned int)(centre / f_pfd)) - 1;
     float ratio = centre / (float)f_pfd;
     float rest  = ratio - (float)n;
@@ -645,7 +537,7 @@ void RH_RF24::setModeIdle()
 	command(RH_RF24_CMD_GPIO_PIN_CFG, config, sizeof(config));
 
 	uint8_t state[] = { _idleMode };
-	command(RH_RF24_CMD_REQUEST_DEVICE_STATE, state, sizeof(state));
+	command(RH_RF24_CMD_CHANGE_STATE, state, sizeof(state));
 	_mode = RHModeIdle;
     }
 }
@@ -654,8 +546,10 @@ bool RH_RF24::sleep()
 {
     if (_mode != RHModeSleep)
     {
+        // This will change to SLEEP or STANDBY, depending on the value of GLOBAL_CLK_CFG:CLK_32K_SEL.
+        // which default to 0, eg STANDBY
 	uint8_t state[] = { RH_RF24_DEVICE_STATE_SLEEP };
-	command(RH_RF24_CMD_REQUEST_DEVICE_STATE, state, sizeof(state));
+	command(RH_RF24_CMD_CHANGE_STATE, state, sizeof(state));
 
 	_mode = RHModeSleep;
     }
@@ -724,7 +618,7 @@ void RH_RF24::setTxPower(uint8_t power)
 	if (power > 0x7f)
 	    power = 0x7f;
     }
-    uint8_t power_properties[] = {0x18, 0x00, 0x00 }; // PA_MODE from WDS sugggestions (why?)
+    uint8_t power_properties[] = {0x08, 0x00, 0x00 }; // PA_MODE from WDS sugggestions (why?)
     power_properties[1] = power;
     power_properties[2] = pa_bias_clkduty;
     set_properties(RH_RF24_PROPERTY_PA_MODE, power_properties, sizeof(power_properties));
@@ -737,7 +631,6 @@ bool RH_RF24::command(uint8_t cmd, const uint8_t* write_buf, uint8_t write_len, 
 
     ATOMIC_BLOCK_START;
     // First send the command
-    _spi.beginTransaction();
     digitalWrite(_slaveSelectPin, LOW);
     _spi.transfer(cmd);
 
@@ -766,9 +659,7 @@ bool RH_RF24::command(uint8_t cmd, const uint8_t* write_buf, uint8_t write_len, 
 	    if (read_buf && read_len)
 	    {
 		while (read_len--)
-		{
 		    *read_buf++ = _spi.transfer(0);
-		}
 	    }
 	    done = true;
 	}
@@ -778,7 +669,6 @@ bool RH_RF24::command(uint8_t cmd, const uint8_t* write_buf, uint8_t write_len, 
 	// Finalise the read
 	digitalWrite(_slaveSelectPin, HIGH);
     }
-    _spi.endTransaction();
     ATOMIC_BLOCK_END;
     return done; // False if too many attempts at CTS
 }
@@ -879,14 +769,12 @@ uint8_t RH_RF24::frr_read(uint8_t reg)
 
     // Do not wait for CTS
     ATOMIC_BLOCK_START;
-    _spi.beginTransaction();
     // First send the command
     digitalWrite(_slaveSelectPin, LOW);
     _spi.transfer(RH_RF24_PROPERTY_FRR_CTL_A_MODE + reg);
     // Get the fast response
     ret = _spi.transfer(0);
     digitalWrite(_slaveSelectPin, HIGH);
-    _spi.endTransaction();
     ATOMIC_BLOCK_END;
     return ret;
 }

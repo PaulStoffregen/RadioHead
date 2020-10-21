@@ -8,6 +8,8 @@
 // Tested on RedBearLabs nRF51822 and BLE Nano kit, built with Arduino 1.6.4.
 // See http://redbearlab.com/getting-started-nrf51822/
 // for how to set up your Arduino build environment
+// Also tested with Sparkfun nRF52832 breakout board, witth Arduino 1.6.13 and
+// Sparkfun nRF52 boards manager 0.2.3
 
 #include <RH_NRF51.h>
 
@@ -27,6 +29,11 @@ void setup()
     Serial.println("setChannel failed");
   if (!nrf51.setRF(RH_NRF51::DataRate2Mbps, RH_NRF51::TransmitPower0dBm))
     Serial.println("setRF failed");    
+
+  // AES encryption can be enabled by setting the same key in the sender and receiver
+//  uint8_t key[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+//                    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+//  nrf51.setEncryptionKey(key);
 }
 
 void loop()

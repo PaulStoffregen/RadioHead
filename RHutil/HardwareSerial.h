@@ -1,7 +1,7 @@
 // HardwareSerial.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2015 Mike McCauley
-// $Id: HardwareSerial.h,v 1.3 2015/08/13 02:45:47 mikem Exp mikem $
+// $Id: HardwareSerial.h,v 1.4 2020/08/05 04:32:19 mikem Exp mikem $
 #ifndef HardwareSerial_h
 #define HardwareSerial_h
 

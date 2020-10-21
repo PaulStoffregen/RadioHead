@@ -1,7 +1,7 @@
 // RH_NRF905.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-// $Id: RH_NRF905.h,v 1.9 2016/04/04 01:40:12 mikem Exp $
+// $Id: RH_NRF905.h,v 1.11 2017/07/25 05:26:50 mikem Exp $
 //
 
 #ifndef RH_NRF905_h
@@ -95,7 +95,7 @@
 
 /////////////////////////////////////////////////////////////////////
 /// \class RH_NRF905 RH_NRF905.h <RH_NRF905.h>
-/// \brief Send and receive addressed, reliable, acknowledged datagrams by nRF905 and compatible transceivers.
+/// \brief Send and receive unaddressed, unreliable datagrams by nRF905 and compatible transceivers.
 ///
 /// This base class provides basic functions for sending and receiving unaddressed, unreliable datagrams
 /// of arbitrary length to 28 octets per packet. Use one of the Manager classes to get addressing and 
@@ -339,10 +339,11 @@ public:
     /// Sends data to the address set by setTransmitAddress()
     /// Sets the radio to TX mode
     /// \param [in] data Data bytes to send.
-    /// \param [in] len Number of data bytes to set in teh TX buffer. The actual size of the 
-    /// transmitted data payload is set by setPayloadSize
+    /// \param [in] len Number of data bytes to set in the TX buffer. The actual size of the 
+    /// transmitted data payload is set by setPayloadSize. Maximum message length actually 
+    /// transmitted is RH_NRF905_MAX_MESSAGE_LEN = 27.
     /// \return true on success (which does not necessarily mean the receiver got the message, only that the message was
-    /// successfully transmitted).
+    /// successfully transmitted). Returns false if the requested message length exceeds RH_NRF905_MAX_MESSAGE_LEN.
     bool send(const uint8_t* data, uint8_t len);
 
     /// Blocks until the current message (if any) 

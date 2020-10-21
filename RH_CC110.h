@@ -7,7 +7,7 @@
 // 
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2016 Mike McCauley
-// $Id: RH_CC110.h,v 1.5 2016/04/04 01:40:12 mikem Exp $
+// $Id: RH_CC110.h,v 1.9 2020/01/05 07:02:23 mikem Exp $
 // 
 
 #ifndef RH_CC110_h
@@ -475,7 +475,7 @@
 
 /////////////////////////////////////////////////////////////////////
 /// \class RH_CC110 RH_CC110.h <RH_CC110.h>
-/// \brief Send and receive addressed, reliable, acknowledged datagrams by Texas Instruments CC110L and compatible transceivers and modules.
+/// \brief Send and receive unaddressed, unreliable, datagrams by Texas Instruments CC110L and compatible transceivers and modules.
 ///
 /// The TI CC110L is a low cost tranceiver chip capable of 300 to 928MHz and with a wide range of modulation types and speeds.
 /// The chip is typically provided on a module that also includes the antenna and coupling hardware
@@ -540,7 +540,7 @@
 /// a Chip Select pin and an Interrupt pin.
 /// Examples below assume the Anaren BoosterPack. Caution: the pin numbering on the Anaren BoosterPack
 /// is a bit counter-intuitive: the direction of number on J1 is the reverse of J2. Check the pin numbers
-/// stencilied on the front of the board to be sure.
+/// stenciled on the front of the board to be sure.
 ///
 /// \code
 ///                 Teensy 3.1   CC110L pin name         Anaren BoosterPack pin
@@ -800,6 +800,11 @@ public:
     /// \param[in] len Number of sync words to set. MUST be 2.
     void setSyncWords(const uint8_t* syncWords, uint8_t len);
 
+    /// Sets the PaTable registers directly.
+    /// Ensure you use suitable PATABLE values per Tbale 5-15 or 5-16
+    /// You may need to do this to implement an OOK modulation scheme.
+    void setPaTable(uint8_t* patable, uint8_t patablesize);
+
 protected:
     /// This is a low level function to handle the interrupts for one instance of RH_RF95.
     /// Called automatically by isr*()
@@ -842,11 +847,12 @@ protected:
     /// \return The value of the status byte per Table 5-2
     uint8_t statusRead();
 
-    /// Sets the PaTable registers directly.
-    /// Ensure you use suitable PATABLE values per Tbale 5-15 or 5-16
-    /// You may need to do this to implement an OOK modulation scheme.
-    void setPaTable(uint8_t* patable, uint8_t patablesize);
-    
+    /// Handle the TX or RX overflow state of the given status
+    /// \param status The status byte read from the last SPI command
+    /// \return void
+    void handleOverFlows(uint8_t status);
+
+
 private:
     /// Low level interrupt service routine for device connected to interrupt 0
     static void         isr0();

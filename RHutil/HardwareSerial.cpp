@@ -1,7 +1,7 @@
 // HardwareSerial.cpp
 //
 // Copyright (C) 2015 Mike McCauley
-// $Id: HardwareSerial.cpp,v 1.3 2015/08/13 02:45:47 mikem Exp mikem $
+// $Id: HardwareSerial.cpp,v 1.4 2020/08/05 04:32:19 mikem Exp mikem $
 
 #include <RadioHead.h>
 #if (RH_PLATFORM == RH_PLATFORM_UNIX)

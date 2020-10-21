@@ -6,7 +6,7 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2015 Mike McCauley
-// $Id: RH_MRF89.h,v 1.6 2015/12/17 10:58:13 mikem Exp $
+// $Id: RH_MRF89.h,v 1.7 2017/07/25 05:26:50 mikem Exp $
 // 
 
 #ifndef RH_RF95_h
@@ -311,7 +311,7 @@
 
 /////////////////////////////////////////////////////////////////////
 /// \class RH_MRF89 RH_MRF89.h <RH_MRF89.h>
-/// \brief Send and receive addressed, reliable, acknowledged datagrams by Microchip MRF89XA and compatible transceivers.
+/// \brief Send and receive unaddressed, unreliable datagrams by Microchip MRF89XA and compatible transceivers.
 /// and modules.
 ///
 /// The Microchip MRF89XA http://ww1.microchip.com/downloads/en/DeviceDoc/70622C.pdf is a low cost 900MHz

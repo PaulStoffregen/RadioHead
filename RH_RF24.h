@@ -1,7 +1,7 @@
 // RH_RF24.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-// $Id: RH_RF24.h,v 1.14 2015/12/11 01:10:24 mikem Exp $
+// $Id: RH_RF24.h,v 1.18 2017/07/25 05:26:50 mikem Exp $
 //
 // Supports RF24/RF26 and RFM24/RFM26 modules in FIFO mode
 // also Si4464/63/62/61/60-A1
@@ -375,6 +375,19 @@
 #define RH_RF24_INT_STATUS_LOW_BATT                       0x02
 #define RH_RF24_INT_STATUS_WUT                            0x01
 
+//#define RH_RF24_PROPERTY_GLOBAL_CLK_CFG                   0x0001
+#define RH_RF24_CLK_CFG_DIVIDED_CLK_EN                    0x40
+#define RH_RF24_CLK_CFG_DIVIDED_CLK_SEL_30                0x30
+#define RH_RF24_CLK_CFG_DIVIDED_CLK_SEL_15                0x28
+#define RH_RF24_CLK_CFG_DIVIDED_CLK_SEL_10                0x20
+#define RH_RF24_CLK_CFG_DIVIDED_CLK_SEL_7_5               0x18
+#define RH_RF24_CLK_CFG_DIVIDED_CLK_SEL_3                 0x10
+#define RH_RF24_CLK_CFG_DIVIDED_CLK_SEL_2                 0x08
+#define RH_RF24_CLK_CFG_DIVIDED_CLK_SEL_1                 0x00
+#define RH_RF24_CLK_CFG_CLK_32K_SEL_EXTERNAL              0x02
+#define RH_RF24_CLK_CFG_CLK_32K_SEL_RC                    0x01
+#define RH_RF24_CLK_CFG_CLK_32K_SEL_DISABLED              0x00
+
 //#define RH_RF24_PROPERTY_FRR_CTL_A_MODE                   0x0200
 //#define RH_RF24_PROPERTY_FRR_CTL_B_MODE                   0x0201
 //#define RH_RF24_PROPERTY_FRR_CTL_C_MODE                   0x0202
@@ -535,7 +548,7 @@
 /// messages by filling or emptying the FIFOs on-the-fly.
 ///
 /// Tested on Anarduino Mini http://www.anarduino.com/mini/ with arduino-1.0.5
-/// on OpenSuSE 13.1
+/// on OpenSuSE 13.1. Also on Anarduino Mini with arduino-1.8.1 on Kubuntu 16.04
 ///
 /// \par Packet Format
 ///
@@ -579,17 +592,45 @@
 /// RH_RF24 driver(10, 3);
 /// \endcode
 ///
-/// \par Customising
+/// \par Customising and configuring
 ///
-/// The library will work out of the box with the provided examples, over the full frequency range and with
-/// a wide range of predefined modem configurations schemes and speeds. However, you may want to 
-/// change the default behaviour of this library. There are several ways you can do this:
+/// The RH_RF24 module uses a radio configuration header file to configure the basic radio operation
+/// frequency and modulation scheme. The radio configuration header file must be generated with the
+/// Silicon Labs Wireless Development Suite (WDS) program and \#included by RH_RF24.cpp
+/// 
+/// The library will work out of the box and without further configuring with these parameters:
+/// - Si4464 or equvalent
+/// - 30MHz Crytstal
+/// - 434MHz base frequncy band
+/// - 2GFSK modulation
+/// - 5kbps data rate
+/// - 10kHz deviation
+/// using the radio configuration header file
+/// RF24configs/radio_config_Si4464_30_434_2GFSK_5_10.h
+///      which is included in RadioHead.
+///      
+/// In order to use different frequency bands or modulation schemes, you must generate a new
+/// radio configuration header file
+/// with WDS, or select one of a small set of prebuilt headers from the RF24configs folder (see README in that
+/// folder for details of the filename format).
 ///
-/// - Use the RH_RF24 API based on this documentation
-/// - Create your own ModemConfig and pass it to setModemreeegisters()
-/// - Generate a new radio_config_Si4460.h using the Silicon Labs WDS software package
-/// - Write directly to the radio registers and properties using command() and set_properties()
+/// To generate a new header file:
 ///
+/// - Install Silicon Labs Wireless Development Suite (WDS) 3.2.11.0 or later 
+///   (Windows only, we were not able to get it to run under Wine on Linux)
+/// - Run WDS
+/// - Menu->Start Simulation
+/// - Select radio chip type Si4464, press Select Radio
+/// - Select Radio Configuration Application, press Select Application
+/// - Click on Standard Packet Tx
+/// - On the Frequency and Power tab, Select the Frequency, crystal frequency etc. The PA power level is irrelevant, 
+///   since power is set programatically 
+/// - On the RF parameters tab, select the modulation type and rates
+/// - Press Generate Source, Save custom radio configuration header file
+/// - Enter a new unique file name in the RF24configs folder in RadioHead
+/// - Edit RH_RF24.cpp to use this new header file
+/// - Recompile RH_RF24
+/// 
 /// \par RSSI
 ///
 /// The RSSI (Received Signal Strength Indicator) is measured and latched after the message sync bytes are received.
@@ -651,6 +692,7 @@ public:
     /// ModemConfigChoice suit your need setModemRegisters() writes the
     /// property values from this structure to the appropriate RF24 properties
     /// to set the desired modulation type, data rate and deviation/bandwidth.
+    /// OBSOLETE: no need ever to use this now
     typedef struct
     {
 	uint8_t   prop_2000;   ///< Value for property RH_RF24_PROPERTY_MODEM_MOD_TYPE
@@ -658,6 +700,9 @@ public:
 	uint8_t   prop_2004;   ///< Value for property RH_RF24_PROPERTY_MODEM_DATA_RATE_1
 	uint8_t   prop_2005;   ///< Value for property RH_RF24_PROPERTY_MODEM_DATA_RATE_0
 	uint8_t   prop_2006;   ///< Value for property RH_RF24_PROPERTY_MODEM_TX_NCO_MODE_3
+	uint8_t   prop_2007;   ///< Value for property RH_RF24_PROPERTY_MODEM_TX_NCO_MODE_2
+	uint8_t   prop_2008;   ///< Value for property RH_RF24_PROPERTY_MODEM_TX_NCO_MODE_1
+	uint8_t   prop_2009;   ///< Value for property RH_RF24_PROPERTY_MODEM_TX_NCO_MODE_0
 	uint8_t   prop_200a;   ///< Value for property RH_RF24_PROPERTY_MODEM_FREQ_DEV_2
 	uint8_t   prop_200b;   ///< Value for property RH_RF24_PROPERTY_MODEM_FREQ_DEV_1
 	uint8_t   prop_200c;   ///< Value for property RH_RF24_PROPERTY_MODEM_FREQ_DEV_0
@@ -744,6 +789,7 @@ public:
     /// definitions and not their integer equivalents: its possible that values will be
     /// changed in later versions (though we will try to avoid it).
     /// Contributions of new complete and tested ModemConfigs ready to add to this list will be readily accepted.
+    /// OBSOLETE: no need ever to use this now
     typedef enum
     {
 	FSK_Rb0_5Fd1 = 0,         ///< FSK  Rb = 0.5kbs, Fd = 1kHz
@@ -835,18 +881,28 @@ public:
     /// Caution: RFM modules are designed with antenna coupling components to suit a limited band
     /// of frequencies (marked underneath the module). It is possible to set frequencies in other bands,
     /// but you may only get little or no power radiated.
+    /// Caution, you can only use this function to change frequency within the frequency band configured by
+    /// the radio configuration header file. To use a frequency in a different band, you must recompile with
+    /// the appropriate radio configuration header file. Setting a frequency in anotehr band will
+    /// have unpredicatble results.
     /// \param[in] centre Frequency in MHz. 
     /// \param[in] afcPullInRange Not used
     /// \return true if the selected frequency is within a valid range for the connected radio and if
     ///         setting the new frequency succeeded.
     bool        setFrequency(float centre, float afcPullInRange = 0.05);
 
+    /// OBSOLETE, do not use.
+    /// To get different modulation schemes, you must generate a new radio config file
+    /// as described in this documentation.
     /// Sets all the properties required to configure the data modem in the RF24, including the data rate, 
     /// bandwidths etc. You can use this to configure the modem with custom configurations if none of the 
     /// canned configurations in ModemConfigChoice suit you.
     /// \param[in] config A ModemConfig structure containing values for the modem configuration registers.
     void           setModemRegisters(const ModemConfig* config);
 
+    /// OBSOLETE, do not use. 
+    /// To get different modulation schemes, you must generate a new radio config file
+    /// as described in this documentation.
     /// Select one of the predefined modem configurations. If you need a modem configuration not provided 
     /// here, use setModemRegisters() with your own ModemConfig. The default after init() is RH_RF24::GFSK_Rb5Fd10.
     /// \param[in] index The configuration choice.
@@ -995,6 +1051,13 @@ public:
     /// \return true if sleep mode was successfully entered.
     virtual bool    sleep();
 
+    /// Return the integer value of the device type
+    /// as read from the device in from RH_RF24_CMD_PART_INFO.
+    /// One of 0x4460, 0x4461, 0x4462 or 0x4463, depending on the type of device actually
+    /// connected.
+    /// \return The integer device type
+    uint16_t deviceType() {return _deviceType;};
+
 protected:
     /// This is a low level function to handle the interrupts for one instance of RF24.
     /// Called automatically by isr*()
@@ -1094,6 +1157,7 @@ private:
 
 /// @example rf24_client.pde
 /// @example rf24_server.pde
+/// @example rf24_lowpower_client.pde
 /// @example rf24_reliable_datagram_client.pde
 /// @example rf24_reliable_datagram_server.pde
 

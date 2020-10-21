@@ -2,7 +2,7 @@
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
 // Contributed by Joanna Rutkowska
-// $Id: RHHardwareSPI.h,v 1.9 2014/08/12 00:54:52 mikem Exp $
+// $Id: RHHardwareSPI.h,v 1.12 2020/01/05 07:02:23 mikem Exp $
 
 #ifndef RHHardwareSPI_h
 #define RHHardwareSPI_h
@@ -15,6 +15,8 @@
 ///
 /// This concrete subclass of GenericSPIClass encapsulates the standard Arduino hardware and other
 /// hardware SPI interfaces.
+///
+/// SPI transactions are supported in development environments that support it with SPI_HAS_TRANSACTION.
 class RHHardwareSPI : public RHGenericSPI
 {
 #ifdef RH_HAVE_HARDWARE_SPI
@@ -34,6 +36,29 @@ public:
     /// \return The octet read from SPI while the data octet was sent
     uint8_t transfer(uint8_t data);
 
+#if (RH_PLATFORM == RH_PLATFORM_MONGOOSE_OS)
+    /// Transfer (write) 2 bytes on the SPI interface to an NRF device
+    /// \param[in] byte0 The first byte to be sent on the SPI interface
+    /// \param[in] byte1 The second byte to be sent on the SPI interface
+    /// \return The second byte clocked in as the second byte is sent.
+    uint8_t transfer2B(uint8_t byte0, uint8_t byte1);
+
+    /// Read a number of bytes on the SPI interface from an NRF device
+    /// \param[in] reg The NRF device register to read
+    /// \param[out] dest The buffer to hold the bytes read
+    /// \param[in] len The number of bytes to read
+    /// \return The NRF status byte
+    uint8_t spiBurstRead(uint8_t reg, uint8_t* dest, uint8_t len);
+
+    /// Wrte a number of bytes on the SPI interface to an NRF device
+    /// \param[in] reg The NRF device register to read
+    /// \param[out] src The buffer to hold the bytes write
+    /// \param[in] len The number of bytes to write
+    /// \return The NRF status byte
+    uint8_t spiBurstWrite(uint8_t reg, const uint8_t* src, uint8_t len);
+
+#endif
+
     // SPI Configuration methods
     /// Enable SPI interrupts
     /// This can be used in an SPI slave to indicate when an SPI message has been received
@@ -52,18 +77,36 @@ public:
     /// Disables the SPI bus (leaving pin modes unchanged). 
     /// Call this after you have finished using the SPI interface.
     void end();
- #if (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined(SPI_HAS_TRANSACTION)
-public:
-    void beginTransaction();
-    void endTransaction();
-   SPISettings  _settings;
- #endif
 #else
     // not supported on ATTiny etc
-    uint8_t transfer(uint8_t data) {return 0;}
+    uint8_t transfer(uint8_t /*data*/) {return 0;}
     void begin(){}
     void end(){}
 
+#endif
+
+    /// Signal the start of an SPI transaction that must not be interrupted by other SPI actions
+    /// In subclasses that support transactions this will ensure that other SPI transactions
+    /// are blocked until this one is completed by endTransaction().
+    /// Uses the underlying SPI transaction support if available as specified by SPI_HAS_TRANSACTION.
+    virtual void beginTransaction();
+
+    /// Signal the end of an SPI transaction
+    /// Uses the underlying SPI transaction support if available as specified by SPI_HAS_TRANSACTION.
+    virtual void endTransaction();
+
+    /// Specify the interrupt number of the interrupt that will use SPI transactions
+    /// Tells the SPI support software that SPI transactions will occur with the interrupt
+    /// handler assocated with interruptNumber
+    /// Uses the underlying SPI transaction support if available as specified by SPI_HAS_TRANSACTION.
+    /// \param[in] interruptNumber The number of the interrupt
+    virtual void usingInterrupt(uint8_t interruptNumber);
+
+protected:
+
+#if defined(SPI_HAS_TRANSACTION)
+    // Storage for SPI settings used in SPI transactions
+    SPISettings  _settings;
 #endif
 };
 

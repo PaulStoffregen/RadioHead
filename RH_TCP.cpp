@@ -1,7 +1,7 @@
 // RH_TCP.cpp
 //
 // Copyright (C) 2014 Mike McCauley
-// $Id: RH_TCP.cpp,v 1.5 2015/08/13 02:45:47 mikem Exp $
+// $Id: RH_TCP.cpp,v 1.6 2017/01/12 23:58:00 mikem Exp $
 
 #include <RadioHead.h>
 
@@ -254,6 +254,9 @@ bool RH_TCP::recv(uint8_t* buf, uint8_t* len)
 
 bool RH_TCP::send(const uint8_t* data, uint8_t len)
 {
+    if (!waitCAD()) 
+	return false;  // Check channel activity (prob not possible for this driver?)
+
     bool ret = sendPacket(data, len);
     delay(10); // Wait for transmit to succeed. REVISIT: depends on length and speed
     return ret;

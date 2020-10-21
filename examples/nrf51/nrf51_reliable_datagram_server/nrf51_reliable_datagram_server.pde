@@ -6,6 +6,8 @@
 // Tested on RedBearLabs nRF51822 and BLE Nano kit, built with Arduino 1.6.4.
 // See http://redbearlab.com/getting-started-nrf51822/
 // for how to set up your Arduino build environment
+// Also tested with Sparkfun nRF52832 breakout board, witth Arduino 1.6.13 and
+// Sparkfun nRF52 boards manager 0.2.3
 
 
 #include <RHReliableDatagram.h>

@@ -1,7 +1,7 @@
 // RH_Serial.h
 //
 // Copyright (C) 2014 Mike McCauley
-// $Id: RH_Serial.h,v 1.11 2016/04/04 01:40:12 mikem Exp $
+// $Id: RH_Serial.h,v 1.14 2020/01/07 23:35:02 mikem Exp $
 
 // Works with any serial port. Tested with Arduino Mega connected to Serial1
 // Also works with 3DR Radio V1.3 Telemetry kit (serial at 57600baud)
@@ -35,6 +35,9 @@
 
 #if (RH_PLATFORM == RH_PLATFORM_STM32F2)
  #define HardwareSerial USARTSerial
+#elif (RH_PLATFORM == RH_PLATFORM_ARDUINO) && defined(ARDUINO_attinyxy6)
+// AT Tiny Mega 3216 etc
+ #define HardwareSerial UartClass
 #endif
 
 class HardwareSerial;
@@ -109,6 +112,10 @@ class HardwareSerial;
 /// On Linux and OSX there can be any number of serial ports.
 /// - On Linux, names like /dev/ttyUSB0 (for a FTDO USB-serial converter)
 /// - On OSX, names like /dev/tty.usbserial-A501YSWL (for a FTDO USB-serial converter)
+///
+/// On STM32 F4 Discovery with Arduino and Arduino_STM32, there are 4 serial ports. We had success with port 2
+/// (TX on pin PA2 and RX on pin PA3) and initialising the driver like this:
+/// RH_Serial driver(Serial2);
 ///
 /// Note that it is necessary for you to select which Serial port your RF_Serial will use and pass it to the 
 /// contructor. On Linux you must pass an instance of HardwareSerial.
@@ -254,5 +261,7 @@ protected:
 /// @example serial_reliable_datagram_client.pde
 /// @example serial_reliable_datagram_server.pde
 /// @example serial_gateway.pde
+/// @example serial_encrypted_reliable_datagram_client.pde
+/// @example serial_encrypted_reliable_datagram_server.pde
 
 #endif

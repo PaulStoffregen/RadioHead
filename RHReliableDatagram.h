@@ -2,17 +2,32 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
-// $Id: RHReliableDatagram.h,v 1.17 2016/04/04 01:40:12 mikem Exp $
+// $Id: RHReliableDatagram.h,v 1.19 2019/07/14 00:18:48 mikem Exp $
 
 #ifndef RHReliableDatagram_h
 #define RHReliableDatagram_h
 
 #include <RHDatagram.h>
 
-// The acknowledgement bit in the FLAGS
-// The top 4 bits of the flags are reserved for RadioHead. The lower 4 bits are reserved
-// for application layer use.
+/// The acknowledgement bit in the header FLAGS. This indicates if the payload is for an
+/// ack for a successfully received message.
 #define RH_FLAGS_ACK 0x80
+/// The retry bit in the header FLAGS. This indicates that the payload is a retry for a
+/// previously sent message.
+#define RH_FLAGS_RETRY 0x40
+
+/// This macro enables enhanced message deduplication behavior. This currently defaults
+/// to 0 (off), but this may change to default to 1 (on) in future releases. Consumers who
+/// want to enable this behavior should override this macro in their code and set it to 1.
+/// It is most useful where a transmitter periodically wakes up and starts to transmit
+/// starting again from the first sequence number.
+///
+/// Enhanced deduplication: Only messages containing the retry bit in the header
+/// FLAGS will be evaluated for deduplication. This ensures that only messages that are
+/// genuine retries will potentially be deduped. Note that this should not be enabled
+/// if you will receive messages from devices using older versions of this library that
+/// do not support the RETRY header. If you do, deduping of messages will be broken.
+#define RH_ENABLE_EXPLICIT_RETRY_DEDUP 0
 
 /// the default retry timeout in milliseconds
 #define RH_DEFAULT_TIMEOUT 200
@@ -122,12 +137,12 @@ public:
     /// If there is a valid message available for this node, send an acknowledgement to the SRC
     /// address (blocking until this is complete), then copy the message to buf and return true
     /// else return false. 
-    /// If a message is copied, *len is set to the length..
+    /// If a message is copied, *len is set to the length.
     /// If from is not NULL, the SRC address is placed in *from.
     /// If to is not NULL, the DEST address is placed in *to.
     /// This is the preferred function for getting messages addressed to this node.
     /// If the message is not a broadcast, acknowledge to the sender before returning.
-    /// You should be sure to call this function frequently enough to not miss any messages
+    /// You should be sure to call this function frequently enough to not miss any messages.
     /// It is recommended that you call it in your main loop.
     /// \param[in] buf Location to copy the received message
     /// \param[in,out] len Available space in buf. Set to the actual number of octets copied.
@@ -136,12 +151,15 @@ public:
     /// \param[in] id If present and not NULL, the referenced uint8_t will be set to the ID
     /// \param[in] flags If present and not NULL, the referenced uint8_t will be set to the FLAGS
     /// (not just those addressed to this node).
-    /// \return true if a valid message was copied to buf
+    /// \return true if a valid message was copied to buf. False if
+    /// - 1. There was no message received and waiting to be collected, or
+    /// - 2. There was a message received but it was not addressed to this node, or
+    /// - 3. There was a correctly addressed message but it was a duplicate of an earlier correctly received message
     bool recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* from = NULL, uint8_t* to = NULL, uint8_t* id = NULL, uint8_t* flags = NULL);
 
     /// Similar to recvfromAck(), this will block until either a valid message available for this node
     /// or the timeout expires. Starts the receiver automatically.
-    /// You should be sure to call this function frequently enough to not miss any messages
+    /// You should be sure to call this function frequently enough to not miss any messages.
     /// It is recommended that you call it in your main loop.
     /// \param[in] buf Location to copy the received message
     /// \param[in,out] len Available space in buf. Set to the actual number of octets copied.
