@@ -22,7 +22,6 @@ void setup()
   // which is assumned to be running at 9600baud.
   // If your E32 has been configured to another baud rate, change this:
   mySerial.begin(9600); 
-  while (!mySerial) ;
 
   if (!driver.init())
     Serial.println("init failed");   
