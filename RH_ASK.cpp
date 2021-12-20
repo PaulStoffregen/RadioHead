@@ -278,8 +278,10 @@ void RH_ASK::timerSetup()
     timer->CTRLA |= TCB_ENABLE_bm;
 
 #elif (RH_PLATFORM == RH_PLATFORM_ARDUINO) // Arduino specific
-    //uint16_t nticks; // number of prescaled ticks needed
-    //uint8_t prescaler; // Bit values for CS0[2:0]
+    #ifdef __AVR__
+    uint16_t nticks; // number of prescaled ticks needed
+    uint8_t prescaler; // Bit values for CS0[2:0]
+    #endif
 
 
  #if defined(__arm__) && defined(CORE_TEENSY)
