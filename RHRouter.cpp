@@ -103,7 +103,7 @@ RHRouter::RoutingTableEntry* RHRouter::getRouteTo(uint8_t dest)
 void RHRouter::deleteRoute(uint8_t index)
 {
     // Delete a route by copying following routes on top of it
-    memcpy(&_routes[index], &_routes[index+1], 
+    memmove(&_routes[index], &_routes[index+1],
 	   sizeof(RoutingTableEntry) * (RH_ROUTING_TABLE_SIZE - index - 1));
     _routes[RH_ROUTING_TABLE_SIZE - 1].state = Invalid;
 }
