@@ -35,8 +35,6 @@ void loop()
 
     if (driver.recv(buf, &buflen)) // Non-blocking
     {
-	int i;
-
 	// Message with a good checksum received, dump it.
 	driver.printBuffer("Got:", buf, buflen);
     }
