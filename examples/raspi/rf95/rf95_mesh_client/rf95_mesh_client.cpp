@@ -31,7 +31,7 @@
 #include <RHMesh.h>
 #include <RH_RF95.h>
 
-#define RH_MESH_MAX_MESSAGE_LEN 50
+//#define RH_MESH_MAX_MESSAGE_LEN 50
 
 //Function Definitions
 void sig_handler(int sig);

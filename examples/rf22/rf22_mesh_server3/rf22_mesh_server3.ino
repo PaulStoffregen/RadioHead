@@ -8,7 +8,7 @@
 
 // Mesh has much greater memory requirements, and you may need to limit the
 // max message length to prevent wierd crashes
-#define RH_MESH_MAX_MESSAGE_LEN 50
+//#define RH_MESH_MAX_MESSAGE_LEN 50
 
 #include <RHMesh.h>
 #include <RH_RF22.h>
