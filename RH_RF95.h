@@ -373,7 +373,7 @@
 /// If you have an Arduino M0 Pro from arduino.org, 
 /// you should note that you cannot use Pin 2 for the interrupt line 
 /// (Pin 2 is for the NMI only). The same comments apply to Pin 4 on Arduino Zero from arduino.cc.
-/// Instead you can use any other pin (we use Pin 3) and initialise RH_RF69 like this:
+/// Instead you can use any other pin (we use Pin 3) and initialise RH_RF95 like this:
 /// \code
 /// // Slave Select is pin 10, interrupt is Pin 3
 /// RH_RF95 driver(10, 3);
